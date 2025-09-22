@@ -4,7 +4,10 @@
 
 ## 1. Preliminary Cleanup & Inventory
 - [x] Search for and list every Google/Gemini reference across the codebase (Python modules, README, translations) to ensure no strings or imports remain after migration. (See `REPLICATE_REFERENCE_INVENTORY.md` for the full inventory.)
-- [ ] Verify there are no hidden runtime dependencies on `google-genai` (e.g., error handling specific to Google response shapes) before reworking the API layer.
+- [x] Verify there are no hidden runtime dependencies on `google-genai` (e.g., error handling specific to Google response shapes) before reworking the API layer.
+  - Confirmed `api.py` is the only module importing `google.genai`; downstream modules interact solely with `GeminiAPI`'s `(pixbuf, error_message)` contract.
+  - Reviewed `dialog_threads.py`, `dialog_events.py`, `dialog.py`, and `dream-prompter.py` to ensure they only depend on generic status strings and the high-level API interface.
+  - Audited support utilities (`integrator.py`, `settings.py`, GTK builders) to verify they manipulate `GdkPixbuf` data without touching Google-specific response objects or exceptions.
 - [ ] Initial Replicate models to expose: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`, `jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a`, `tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c`. Document expected input fields according to model schema: `https://replicate.com/google/nano-banana/api/schema`, `https://replicate.com/bytedance/seedream-4/api/schema`, `https://replicate.com/qwen/qwen-image-edit/api/schema`, `https://replicate.com/jingyunliang/swinir/api/schema`, `https://replicate.com/tencentarc/gfpgan/api/schema`.
 
 ## 2. API Layer Replacement (`api.py`)
