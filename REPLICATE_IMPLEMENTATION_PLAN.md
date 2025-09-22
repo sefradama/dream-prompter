@@ -5,7 +5,7 @@
 ## 1. Preliminary Cleanup & Inventory
 - [ ] Search for and list every Google/Gemini reference across the codebase (Python modules, README, translations) to ensure no strings or imports remain after migration.
 - [ ] Verify there are no hidden runtime dependencies on `google-genai` (e.g., error handling specific to Google response shapes) before reworking the API layer.
-- [ ] Decide on the initial Replicate model catalog to expose (e.g., `black-forest-labs/flux-dev`, `stability-ai/sdxl`, or other image-to-image capable variants) and document expected input fields (supports `prompt`, optional `image`, optional `mask`?).
+- [ ] Initial Replicate models to expose: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`, `jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a`, `tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c`. Document expected input fields according to model schema: `https://replicate.com/google/nano-banana/api/schema`, `https://replicate.com/bytedance/seedream-4/api/schema`, `https://replicate.com/qwen/qwen-image-edit/api/schema`, `https://replicate.com/jingyunliang/swinir/api/schema`, `https://replicate.com/tencentarc/gfpgan/api/schema`.
 
 ## 2. API Layer Replacement (`api.py`)
 - [ ] Rename `GeminiAPI` to `ReplicateAPI` and update docstrings and module header comments to describe Replicate usage.
@@ -21,7 +21,6 @@
 - [ ] Update `edit_image` to send the current GIMP layer as an input image where the selected Replicate model supports image-to-image operations:
   - [ ] Export the current layer to PNG bytes (`integrator.export_gimp_image_to_bytes` already does this).
   - [ ] Feed that into the payload (`{"prompt": prompt, "image": BytesIO(...)}`) alongside optional reference images if accepted by the chosen model.
-  - [ ] Handle models without editing support by returning a localized error stating that the model does not support editing.
 - [ ] Replace `_parse_image_response` logic with Replicate-specific parsing (their responses may be lists of URLs, base64 strings, or file handles); loop through outputs until a usable image byte sequence is found and convert to `GdkPixbuf` as before.
 - [ ] Update progress callback messaging to remove "Nano Banana" branding and reflect Replicate steps (e.g., "Queueing Replicate job", "Waiting for prediction", "Downloading result").
 
@@ -45,7 +44,7 @@
 - [ ] Update validation messages to reference Replicate (e.g., "Please enter your Replicate API token").
 - [ ] Initialize the model combo box selection from stored settings or default to a sensible option.
 - [ ] Pass the chosen model version into the thread launcher methods.
-- [ ] If editing mode is chosen and the model lacks editing support, surface a localized warning immediately instead of dispatching a failing request.
+- [ ] If editing mode is chosen and the model lacks editing support, surface a warning immediately instead of dispatching a failing request.
 
 ## 6. Settings Persistence (`settings.py`)
 - [ ] Extend stored JSON structure with a `model_version` field (defaulting to the preferred Replicate model) and migrate existing configs gracefully (handle missing key by injecting default when loading older files).
@@ -55,12 +54,10 @@
 - [ ] Update window titles, descriptions, and registration metadata to describe Replicate usage instead of Nano Banana.
 - [ ] Update plugin documentation strings (`procedure.set_documentation`, `PLUGIN_DESCRIPTION`) to reflect new capabilities and mention that users can pick from multiple Replicate models.
 
-## 8. Documentation & Localization
+## 8. Documentation
 - [ ] Rewrite `README.md` sections (features, prerequisites, installation, API key acquisition) to reference Replicate, including instructions to install the `replicate` Python package and to create tokens on replicate.com.
 - [ ] Remove Google-specific setup instructions and replace screenshots/notes if necessary.
 - [ ] Update any other docs or comments referencing Gemini/Nano Banana.
-- [ ] Run `scripts/update-pot.py` and `scripts/update-translations.py`, then refresh compiled catalogs (`scripts/build-translations.py`) to propagate updated strings across locales.
-- [ ] Manually translate new/changed strings or mark TODOs for translators if not immediately available.
 
 ## 9. Dependency Audit
 - [ ] Ensure `google-genai` is no longer mentioned in installation or optional dependencies; add guidance for installing `replicate` (and any additional libraries needed for HTTP downloads like `requests` if used).
