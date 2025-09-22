@@ -8,6 +8,7 @@ import binascii
 import io
 import mimetypes
 import os
+from collections.abc import Iterable
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib import error as urlerror
 from urllib import request as urlrequest
@@ -27,6 +28,7 @@ PROGRESS_PROCESS = 0.7
 PROGRESS_UPLOAD = 0.5
 SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
 DEFAULT_MODEL_VERSION = "google/nano-banana"
+ENV_TOKEN_VAR = "REPLICATE_API_TOKEN"
 
 try:
     import replicate
@@ -51,10 +53,19 @@ class ReplicateAPI:
                 _("Replicate API not available. Please install the replicate package.")
             )
 
-        if not api_key or not api_key.strip():
-            raise ValueError(_("API key is required"))
+        resolved_key = (
+            api_key.strip()
+            if api_key and api_key.strip()
+            else os.getenv(ENV_TOKEN_VAR, "").strip()
+        )
+        if not resolved_key:
+            raise ValueError(
+                _(
+                    "Replicate API token not provided. Set the field or export {env_var}."
+                ).format(env_var=ENV_TOKEN_VAR)
+            )
 
-        self.api_key = api_key.strip()
+        self.api_key = resolved_key
         self.model_version = (model_version or DEFAULT_MODEL_VERSION).strip()
         if not self.model_version:
             self.model_version = DEFAULT_MODEL_VERSION
@@ -117,14 +128,14 @@ class ReplicateAPI:
             )
 
             if progress_callback and not progress_callback(
-                _("Submitting edit request to Replicate..."), PROGRESS_PROCESS
+                _("Queueing Replicate edit prediction..."), PROGRESS_PROCESS
             ):
                 return None, _("Operation cancelled")
 
             response = self.client.run(self.model_version, input=payload)
 
             if progress_callback and not progress_callback(
-                _("Processing Replicate edit response..."), PROGRESS_DOWNLOAD
+                _("Collecting Replicate edit output..."), PROGRESS_DOWNLOAD
             ):
                 return None, _("Operation cancelled")
 
@@ -177,14 +188,14 @@ class ReplicateAPI:
             )
 
             if progress_callback and not progress_callback(
-                _("Submitting request to Replicate..."), PROGRESS_PROCESS
+                _("Queueing Replicate generation prediction..."), PROGRESS_PROCESS
             ):
                 return None, _("Operation cancelled")
 
             response = self.client.run(self.model_version, input=payload)
 
             if progress_callback and not progress_callback(
-                _("Processing Replicate response..."), PROGRESS_DOWNLOAD
+                _("Collecting Replicate generation output..."), PROGRESS_DOWNLOAD
             ):
                 return None, _("Operation cancelled")
 
@@ -317,6 +328,21 @@ class ReplicateAPI:
             except (binascii.Error, ValueError):
                 return None
 
+        if hasattr(data, "read") and callable(data.read):
+            try:
+                if hasattr(data, "seek") and callable(data.seek):
+                    data.seek(0)
+                file_bytes = data.read()
+                if file_bytes:
+                    return file_bytes
+            except Exception as exc:
+                print(f"Warning: Could not read file-like response: {exc}")
+
+        if hasattr(data, "url") and isinstance(getattr(data, "url"), str):
+            image_bytes = self._download_image(getattr(data, "url"))
+            if image_bytes:
+                return image_bytes
+
         if isinstance(data, dict):
             for key in ("image", "output", "result", "url", "uri", "data", "urls"):
                 if key in data:
@@ -325,6 +351,12 @@ class ReplicateAPI:
                         return image_bytes
 
         if isinstance(data, (list, tuple)):
+            for item in data:
+                image_bytes = self._extract_image_bytes(item)
+                if image_bytes:
+                    return image_bytes
+
+        if isinstance(data, Iterable):
             for item in data:
                 image_bytes = self._extract_image_bytes(item)
                 if image_bytes:

@@ -12,6 +12,7 @@ from dialog_threads import DreamPrompterThreads
 from i18n import _
 from settings import store_settings, load_settings
 
+
 class DreamPrompterEventHandler:
     """Handles all dialog events and user interactions"""
 
@@ -23,10 +24,9 @@ class DreamPrompterEventHandler:
         self.ui.event_handler = self
 
         self.threads = DreamPrompterThreads(ui, image, drawable)
-        self.threads.set_callbacks({
-            'on_success': self.close_on_success,
-            'on_error': self.show_error
-        })
+        self.threads.set_callbacks(
+            {"on_success": self.close_on_success, "on_error": self.show_error}
+        )
 
         settings = load_settings()
         if self.ui.toggle_visibility_btn and self.ui.api_key_entry:
@@ -95,14 +95,18 @@ class DreamPrompterEventHandler:
         prompt_text = self.dialog.get_prompt()
 
         if not api_key:
-            self.show_error(_("Please enter your Google Gemini API key"))
+            self.show_error(_("Please enter your Replicate API token"))
             return
 
         if not prompt_text:
             self.show_error(_("Please enter a prompt"))
             return
 
-        if self.ui.edit_mode_radio and self.ui.edit_mode_radio.get_active() and not self.drawable:
+        if (
+            self.ui.edit_mode_radio
+            and self.ui.edit_mode_radio.get_active()
+            and not self.drawable
+        ):
             self.show_error(_("Edit mode requires a selected layer"))
             return
 
@@ -111,12 +115,14 @@ class DreamPrompterEventHandler:
         store_settings(api_key, mode, prompt_text, api_key_visible)
 
         if self.ui.status_label:
-            self.ui.status_label.set_text(_("Initializing API request..."))
+            self.ui.status_label.set_text(_("Initializing Replicate request..."))
 
         if mode == "edit":
             self.threads.start_edit_thread(api_key, prompt_text, self.ui.selected_files)
         else:
-            self.threads.start_generate_thread(api_key, prompt_text, self.ui.selected_files)
+            self.threads.start_generate_thread(
+                api_key, prompt_text, self.ui.selected_files
+            )
 
     def on_mode_changed(self, radio_button):
         """Handle mode selection changes"""
@@ -132,15 +138,18 @@ class DreamPrompterEventHandler:
             if self.ui.generate_btn:
                 self.ui.generate_btn.set_label(_("Generate Edit"))
             if self.ui.images_help_label:
-                self.ui.images_help_label.set_markup(f'<small>{_("Select up to 2 additional images")}</small>')
+                self.ui.images_help_label.set_markup(
+                    f"<small>{_('Select up to 2 additional images')}</small>"
+                )
         else:
             if self.ui.generate_btn:
                 self.ui.generate_btn.set_label(_("Generate Image"))
             if self.ui.images_help_label:
-                self.ui.images_help_label.set_markup(f'<small>{_("Select up to 3 additional images")}</small>')
+                self.ui.images_help_label.set_markup(
+                    f"<small>{_('Select up to 3 additional images')}</small>"
+                )
 
         self.update_generate_button_state()
-
 
     def on_prompt_changed(self, _buffer):
         """Handle prompt text changes"""
@@ -157,7 +166,7 @@ class DreamPrompterEventHandler:
         dialog = Gtk.FileChooserDialog(
             title=_("Select Reference Images"),
             parent=self.dialog,
-            action=Gtk.FileChooserAction.OPEN
+            action=Gtk.FileChooserAction.OPEN,
         )
 
         dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
@@ -189,9 +198,17 @@ class DreamPrompterEventHandler:
                 self.ui.update_files_display()
             elif files:
                 if current_mode == "edit":
-                    print(_("Cannot add {count} files. Maximum 2 reference images allowed in edit mode.").format(count=len(files)))
+                    print(
+                        _(
+                            "Cannot add {count} files. Maximum 2 reference images allowed in edit mode."
+                        ).format(count=len(files))
+                    )
                 else:
-                    print(_("Cannot add {count} files. Maximum 3 reference images allowed.").format(count=len(files)))
+                    print(
+                        _(
+                            "Cannot add {count} files. Maximum 3 reference images allowed."
+                        ).format(count=len(files))
+                    )
 
         dialog.destroy()
 
@@ -202,11 +219,19 @@ class DreamPrompterEventHandler:
 
         if button.get_active():
             self.ui.api_key_entry.set_visibility(True)
-            button.set_image(Gtk.Image.new_from_icon_name("view-reveal-symbolic", Gtk.IconSize.BUTTON))
+            button.set_image(
+                Gtk.Image.new_from_icon_name(
+                    "view-reveal-symbolic", Gtk.IconSize.BUTTON
+                )
+            )
             button.set_tooltip_text(_("Hide API key"))
         else:
             self.ui.api_key_entry.set_visibility(False)
-            button.set_image(Gtk.Image.new_from_icon_name("view-conceal-symbolic", Gtk.IconSize.BUTTON))
+            button.set_image(
+                Gtk.Image.new_from_icon_name(
+                    "view-conceal-symbolic", Gtk.IconSize.BUTTON
+                )
+            )
             button.set_tooltip_text(_("Show API key"))
 
     def show_error(self, message):
@@ -219,14 +244,18 @@ class DreamPrompterEventHandler:
             modal=True,
             message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,
-            text=message
+            text=message,
         )
         dialog.run()
         dialog.destroy()
 
     def update_generate_button_state(self):
         """Update generate button sensitivity based on input state"""
-        if not self.ui.prompt_buffer or not self.ui.api_key_entry or not self.ui.generate_btn:
+        if (
+            not self.ui.prompt_buffer
+            or not self.ui.api_key_entry
+            or not self.ui.generate_btn
+        ):
             return
 
         prompt_text = self.dialog.get_prompt()
@@ -238,6 +267,8 @@ class DreamPrompterEventHandler:
 
         if current_mode == "edit":
             has_drawable = self.drawable is not None
-            self.ui.generate_btn.set_sensitive(has_text and has_api_key and has_drawable)
+            self.ui.generate_btn.set_sensitive(
+                has_text and has_api_key and has_drawable
+            )
         else:
             self.ui.generate_btn.set_sensitive(has_text and has_api_key)
