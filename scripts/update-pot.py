@@ -11,7 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-def extract_strings():
+def extract_strings() -> bool:
     """Extract strings and create .pot file"""
 
     plugin_dir = Path(__file__).parent.parent
@@ -42,13 +42,13 @@ def extract_strings():
         '--from-code=UTF-8',
         '--copyright-holder=Josh Ellithorpe',
         '--package-name=Dream Prompter',
-        '--package-version=1.0.0',
+        '--package-version=1.0.3',
         '--msgid-bugs-address=quest@mac.com',
         '--add-comments=TRANSLATORS'
     ] + python_files
 
     try:
-        subprocess.run(cmd, check=True)
+        _ = subprocess.run(cmd, check=True)
         print(f"Successfully created {pot_file}")
         return True
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
