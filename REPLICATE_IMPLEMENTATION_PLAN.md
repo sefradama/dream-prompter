@@ -11,7 +11,7 @@
 - [x] Initial Replicate models to expose: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`, `jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a`, `tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c`. Documented expected input fields for each schema in `REPLICATE_MODEL_INPUTS.md` so the API and UI layers know which payload keys, types, and defaults to honor when wiring up Replicate requests.
 
 ## 2. API Layer Replacement (`api.py`)
-- [ ] Rename `GeminiAPI` to `ReplicateAPI` and update docstrings and module header comments to describe Replicate usage.
+- [x] Rename `GeminiAPI` to `ReplicateAPI` and update docstrings and module header comments to describe Replicate usage.
 - [ ] Remove Google-specific imports (`google.genai` packages) and constants that only apply to Nano Banana (e.g., progress messages with "Nano Banana").
 - [ ] Add `import replicate` and handle optional dependency messaging (warn if the library is missing with install instructions for `replicate`).
 - [ ] Initialize a Replicate client via `replicate.Client(api_token=api_key)` inside `__init__`, storing the token for future requests.
