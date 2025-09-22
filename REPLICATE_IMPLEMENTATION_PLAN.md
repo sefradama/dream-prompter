@@ -3,7 +3,7 @@
 > Goal: Replace all Google "Nano Banana" (Gemini) integrations with Replicate so the plugin exclusively uses Replicate-hosted image models with a user-selectable model choice.
 
 ## 1. Preliminary Cleanup & Inventory
-- [ ] Search for and list every Google/Gemini reference across the codebase (Python modules, README, translations) to ensure no strings or imports remain after migration.
+- [x] Search for and list every Google/Gemini reference across the codebase (Python modules, README, translations) to ensure no strings or imports remain after migration. (See `REPLICATE_REFERENCE_INVENTORY.md` for the full inventory.)
 - [ ] Verify there are no hidden runtime dependencies on `google-genai` (e.g., error handling specific to Google response shapes) before reworking the API layer.
 - [ ] Initial Replicate models to expose: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`, `jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a`, `tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c`. Document expected input fields according to model schema: `https://replicate.com/google/nano-banana/api/schema`, `https://replicate.com/bytedance/seedream-4/api/schema`, `https://replicate.com/qwen/qwen-image-edit/api/schema`, `https://replicate.com/jingyunliang/swinir/api/schema`, `https://replicate.com/tencentarc/gfpgan/api/schema`.
 
