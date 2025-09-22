@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Replicate image generation integration for Dream Prompter plugin.
-Provides the Replicate API client used by the Dream Prompter dialog.
-"""
+"""Replicate image generation integration for Dream Prompter."""
 
 import base64
+import binascii
+import io
 import mimetypes
 import os
-from typing import Optional, Callable, Tuple, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from urllib import error as urlerror
+from urllib import request as urlrequest
 
 from gi.repository import GdkPixbuf, Gimp
 
@@ -25,44 +26,40 @@ PROGRESS_PREPARE = 0.1
 PROGRESS_PROCESS = 0.7
 PROGRESS_UPLOAD = 0.5
 SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
+DEFAULT_MODEL_VERSION = "google/nano-banana"
 
 try:
-    from google import genai
-    from google.genai import types, errors
+    import replicate
+    from replicate.exceptions import ReplicateError
 
-    GENAI_AVAILABLE = True
+    REPLICATE_AVAILABLE = True
 except ImportError:
-    genai = None
-    types = None
-    errors = None
-    GENAI_AVAILABLE = False
-    print("Warning: google-genai not installed. Install with: pip install google-genai")
+    replicate = None  # type: ignore[assignment]
+    ReplicateError = RuntimeError  # type: ignore[assignment]
+    REPLICATE_AVAILABLE = False
+    print("Warning: replicate not installed. Install with: pip install replicate")
 
 
 class ReplicateAPI:
-    """Replicate client for image generation and editing."""
+    """Replicate client for image generation and editing operations."""
 
-    def __init__(self, api_key: str) -> None:
-        """
-        Initialize the Replicate API client.
+    def __init__(self, api_key: str, model_version: Optional[str] = None) -> None:
+        """Initialize the Replicate API client."""
 
-        Args:
-            api_key (str): Replicate API token for authentication
-
-        Raises:
-            ImportError: If google-genai package is not available
-            ValueError: If API key is invalid
-        """
-        if not GENAI_AVAILABLE:
+        if not REPLICATE_AVAILABLE:
             raise ImportError(
-                _("Nano Banana API not available. Please install google-genai")
+                _("Replicate API not available. Please install the replicate package.")
             )
 
         if not api_key or not api_key.strip():
             raise ValueError(_("API key is required"))
 
         self.api_key = api_key.strip()
-        self.client = genai.Client(api_key=self.api_key) if genai else None
+        self.model_version = (model_version or DEFAULT_MODEL_VERSION).strip()
+        if not self.model_version:
+            self.model_version = DEFAULT_MODEL_VERSION
+
+        self.client = replicate.Client(api_token=self.api_key) if replicate else None
 
     def edit_image(
         self,
@@ -88,14 +85,14 @@ class ReplicateAPI:
                 - If failed: (None, error_message)
                 - If cancelled: (None, "Operation cancelled")
         """
-        if not self.client or not types or not errors:
-            return None, _("Nano Banana API not available. Please install google-genai")
+        if not self.client:
+            return None, _("Replicate API client is not available")
 
         if not image:
             return None, _("No GIMP image provided for editing")
 
         if progress_callback and not progress_callback(
-            _("Preparing current image for Nano Banana..."), PROGRESS_PREPARE
+            _("Preparing current image for Replicate..."), PROGRESS_PREPARE
         ):
             return None, _("Operation cancelled")
 
@@ -105,34 +102,29 @@ class ReplicateAPI:
                 return None, _("Failed to export current image")
 
             if progress_callback and not progress_callback(
-                _("Building Nano Banana edit request..."), PROGRESS_UPLOAD
+                _("Building Replicate edit request..."), PROGRESS_UPLOAD
             ):
                 return None, _("Operation cancelled")
 
-            contents = []
-
-            current_image_part = types.Part(
-                inline_data=types.Blob(data=current_image_data, mime_type="image/png")
-            )
-            contents.append(current_image_part)
-
+            payload: Dict[str, Any] = {
+                "prompt": prompt.strip(),
+                "image": self._create_file_handle(
+                    current_image_data, "dream-prompter-edit.png"
+                ),
+            }
             self._add_reference_images(
-                contents, reference_images, MAX_REFERENCE_IMAGES_EDIT
+                payload, reference_images, MAX_REFERENCE_IMAGES_EDIT
             )
 
-            contents.append(prompt)
-
             if progress_callback and not progress_callback(
-                _("Sending edit request to Nano Banana..."), PROGRESS_PROCESS
+                _("Submitting edit request to Replicate..."), PROGRESS_PROCESS
             ):
                 return None, _("Operation cancelled")
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash-image-preview", contents=contents
-            )
+            response = self.client.run(self.model_version, input=payload)
 
             if progress_callback and not progress_callback(
-                _("Processing Nano Banana edit response..."), PROGRESS_DOWNLOAD
+                _("Processing Replicate edit response..."), PROGRESS_DOWNLOAD
             ):
                 return None, _("Operation cancelled")
 
@@ -143,8 +135,8 @@ class ReplicateAPI:
 
             return pixbuf, error_msg
 
-        except errors.APIError as e:
-            return None, _("Nano Banana API error: {error}").format(error=e.message)
+        except ReplicateError as e:
+            return None, _("Replicate API error: {error}").format(error=str(e))
         except Exception as e:
             return None, _("Unexpected error: {error}").format(error=str(e))
 
@@ -170,38 +162,29 @@ class ReplicateAPI:
                 - If failed: (None, error_message)
                 - If cancelled: (None, "Operation cancelled")
         """
-        if not self.client or not types or not errors:
-            return None, _("Nano Banana API not available. Please install google-genai")
+        if not self.client:
+            return None, _("Replicate API client is not available")
 
         if progress_callback and not progress_callback(
-            _("Generating image with Nano Banana..."), PROGRESS_PREPARE
+            _("Preparing Replicate generation request..."), PROGRESS_PREPARE
         ):
             return None, _("Operation cancelled")
 
         try:
-            if reference_images:
-                contents = []
-
-                prompt_part = types.Part(text=prompt)
-                contents.append(prompt_part)
-
-                self._add_reference_images(
-                    contents, reference_images, MAX_REFERENCE_IMAGES_GENERATE
-                )
-            else:
-                contents = prompt
-
-            if progress_callback and not progress_callback(
-                _("Sending request to Nano Banana..."), PROGRESS_PROCESS
-            ):
-                return None, _("Operation cancelled")
-
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash-image-preview", contents=contents
+            payload: Dict[str, Any] = {"prompt": prompt.strip()}
+            self._add_reference_images(
+                payload, reference_images, MAX_REFERENCE_IMAGES_GENERATE
             )
 
             if progress_callback and not progress_callback(
-                _("Processing Nano Banana response..."), PROGRESS_DOWNLOAD
+                _("Submitting request to Replicate..."), PROGRESS_PROCESS
+            ):
+                return None, _("Operation cancelled")
+
+            response = self.client.run(self.model_version, input=payload)
+
+            if progress_callback and not progress_callback(
+                _("Processing Replicate response..."), PROGRESS_DOWNLOAD
             ):
                 return None, _("Operation cancelled")
 
@@ -212,29 +195,30 @@ class ReplicateAPI:
 
             return pixbuf, error_msg
 
-        except errors.APIError as e:
-            return None, _("Nano Banana API error: {error}").format(error=e.message)
+        except ReplicateError as e:
+            return None, _("Replicate API error: {error}").format(error=str(e))
         except Exception as e:
             return None, _("Unexpected error: {error}").format(error=str(e))
 
     def _add_reference_images(
-        self, contents: List, reference_images: Optional[List[str]], max_count: int
+        self,
+        payload: Dict[str, Any],
+        reference_images: Optional[List[str]],
+        max_count: int,
     ) -> None:
-        """
-        Add reference images to the contents list
+        """Attach validated reference images to the Replicate payload."""
 
-        Args:
-            contents (list): List to append image parts to
-            reference_images (list, optional): List of image file paths
-            max_count (int): Maximum number of images to add
-        """
-        if not reference_images or not types:
+        if not reference_images:
             return
 
+        handles: List[io.BytesIO] = []
         for img_path in reference_images[:max_count]:
-            image_part, success = self._validate_reference_image(img_path)
-            if success and image_part:
-                contents.append(image_part)
+            image_handle, success = self._validate_reference_image(img_path)
+            if success and image_handle:
+                handles.append(image_handle)
+
+        if handles:
+            payload["image_input"] = handles
 
     def _bytes_to_pixbuf(self, image_bytes: bytes) -> Optional[GdkPixbuf.Pixbuf]:
         """
@@ -259,65 +243,24 @@ class ReplicateAPI:
             return None
 
     def _parse_image_response(
-        self, response
+        self, response: Any
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
-        """
-        Parse the API response and extract the generated image
+        """Parse Replicate response payloads into a ``GdkPixbuf``."""
 
-        Args:
-            response: API response object
+        image_bytes = self._extract_image_bytes(response)
+        if not image_bytes:
+            return None, _("No image data found in Replicate response")
 
-        Returns:
-            tuple: (GdkPixbuf.Pixbuf | None, str | None)
-                - If successful: (pixbuf, None)
-                - If failed: (None, error_message)
-        """
-        if hasattr(response, "error") and response.error:
-            return None, str(response.error)
+        pixbuf = self._bytes_to_pixbuf(image_bytes)
+        if pixbuf:
+            return pixbuf, None
 
-        if hasattr(response, "candidates") and response.candidates:
-            candidate = response.candidates[0]
-            if hasattr(candidate, "finish_reason") and candidate.finish_reason:
-                if candidate.finish_reason not in ["STOP", "MAX_TOKENS"]:
-                    return None, _("Generation stopped: {reason}").format(
-                        reason=candidate.finish_reason
-                    )
-
-        if not response.candidates:
-            return None, _("No candidates in API response")
-
-        candidate = response.candidates[0]
-        if not candidate.content or not candidate.content.parts:
-            return None, _("No content parts in API response")
-
-        for part in candidate.content.parts:
-            if hasattr(part, "inline_data") and part.inline_data:
-                image_bytes = part.inline_data.data
-                if isinstance(image_bytes, str):
-                    image_bytes = base64.b64decode(image_bytes)
-
-                pixbuf = self._bytes_to_pixbuf(image_bytes)
-                if pixbuf:
-                    return pixbuf, None
-
-        return None, _("No image data found in response")
+        return None, _("Failed to decode image data from Replicate response")
 
     def _validate_reference_image(
         self, img_path: str, max_size_mb: int = MAX_FILE_SIZE_MB
-    ) -> Tuple[Optional[object], bool]:
-        """
-        Validate and load a reference image file
-
-        Args:
-            img_path (str): Path to the image file
-            max_size_mb (int): Maximum file size in MB
-
-        Returns:
-            tuple: (image_part | None, success: bool)
-        """
-        if not types:
-            print("Error: types module not found")
-            return None, False
+    ) -> Tuple[Optional[io.BytesIO], bool]:
+        """Validate and load a reference image file for Replicate."""
 
         try:
             file_size = os.path.getsize(img_path)
@@ -337,11 +280,64 @@ class ReplicateAPI:
                 )
                 return None, False
 
-            image_part = types.Part(
-                inline_data=types.Blob(data=image_data, mime_type=mime_type)
+            handle = self._create_file_handle(
+                image_data, os.path.basename(img_path) or "reference-image"
             )
-            return image_part, True
+            return handle, True
 
         except Exception as e:
             print(f"Warning: Could not load reference image {img_path}: {e}")
             return None, False
+
+    def _create_file_handle(self, image_bytes: bytes, name: str) -> io.BytesIO:
+        """Wrap image bytes in a file-like buffer compatible with Replicate SDK."""
+
+        handle = io.BytesIO(image_bytes)
+        handle.name = name
+        handle.seek(0)
+        return handle
+
+    def _extract_image_bytes(self, data: Any) -> Optional[bytes]:
+        """Extract image bytes from Replicate responses of varying shapes."""
+
+        if data is None:
+            return None
+
+        if isinstance(data, bytes):
+            return data
+
+        if isinstance(data, str):
+            if data.startswith("http://") or data.startswith("https://"):
+                return self._download_image(data)
+
+            _, _, encoded = data.partition(",")
+            candidate = encoded or data
+            try:
+                return base64.b64decode(candidate)
+            except (binascii.Error, ValueError):
+                return None
+
+        if isinstance(data, dict):
+            for key in ("image", "output", "result", "url", "uri", "data", "urls"):
+                if key in data:
+                    image_bytes = self._extract_image_bytes(data[key])
+                    if image_bytes:
+                        return image_bytes
+
+        if isinstance(data, (list, tuple)):
+            for item in data:
+                image_bytes = self._extract_image_bytes(item)
+                if image_bytes:
+                    return image_bytes
+
+        return None
+
+    def _download_image(self, url: str) -> Optional[bytes]:
+        """Download image bytes from a remote URL."""
+
+        try:
+            with urlrequest.urlopen(url) as response:
+                return response.read()
+        except (urlerror.URLError, ValueError) as exc:
+            print(f"Warning: Could not download image from {url}: {exc}")
+            return None
