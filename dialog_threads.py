@@ -7,19 +7,22 @@ Handles all background AI processing and image operations
 """
 
 import threading
-from typing import Dict, Callable, Optional, Any, List, Union
+from typing import Dict, Callable, Optional, Any, List
 
 from gi.repository import GLib, GdkPixbuf
 
 import integrator
-from api import GeminiAPI
+from api import ReplicateAPI
 from dialog_gtk import DreamPrompterUI
 from i18n import _
+
 
 class DreamPrompterThreads:
     """Handles all background threading operations"""
 
-    def __init__(self, ui: DreamPrompterUI, image: Optional[Any], drawable: Optional[Any]) -> None:
+    def __init__(
+        self, ui: DreamPrompterUI, image: Optional[Any], drawable: Optional[Any]
+    ) -> None:
         """
         Initialize thread manager
 
@@ -64,19 +67,23 @@ class DreamPrompterThreads:
         if not isinstance(callbacks, dict):
             raise ValueError("Callbacks must be a dictionary")
 
-        valid_keys = {'on_success', 'on_error'}
+        valid_keys = {"on_success", "on_error"}
         for key in callbacks.keys():
             if key not in valid_keys:
-                raise ValueError(f"Invalid callback key: {key}. Valid keys: {valid_keys}")
+                raise ValueError(
+                    f"Invalid callback key: {key}. Valid keys: {valid_keys}"
+                )
 
         self._callbacks = callbacks
 
-    def start_generate_thread(self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None) -> None:
+    def start_generate_thread(
+        self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None
+    ) -> None:
         """
         Start image generation in background thread
 
         Args:
-            api_key: Google Gemini API key
+            api_key: Replicate API token
             prompt: Text prompt for image generation
             reference_images: Optional list of reference image paths
         """
@@ -97,17 +104,19 @@ class DreamPrompterThreads:
 
         self._current_thread = threading.Thread(
             target=self._generate_image_worker,
-            args=(api_key, prompt, reference_images or [])
+            args=(api_key, prompt, reference_images or []),
         )
         self._current_thread.daemon = True
         self._current_thread.start()
 
-    def start_edit_thread(self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None) -> None:
+    def start_edit_thread(
+        self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None
+    ) -> None:
         """
         Start image editing in background thread
 
         Args:
-            api_key: Google Gemini API key
+            api_key: Replicate API token
             prompt: Text prompt for image editing
             reference_images: Optional list of reference image paths
         """
@@ -136,17 +145,19 @@ class DreamPrompterThreads:
 
         self._current_thread = threading.Thread(
             target=self._edit_image_worker,
-            args=(api_key, prompt, reference_images or [])
+            args=(api_key, prompt, reference_images or []),
         )
         self._current_thread.daemon = True
         self._current_thread.start()
 
-    def _generate_image_worker(self, api_key: str, prompt: str, reference_images: List[str]) -> None:
+    def _generate_image_worker(
+        self, api_key: str, prompt: str, reference_images: List[str]
+    ) -> None:
         """
         Generate image in background thread
 
         Args:
-            api_key: Google Gemini API key
+            api_key: Replicate API token
             prompt: Text prompt for image generation
             reference_images: List of reference image paths
         """
@@ -155,9 +166,11 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_cancelled)
                 return
 
-            api = GeminiAPI(api_key)
+            api = ReplicateAPI(api_key)
 
-            def progress_callback(message: str, percentage: Optional[float] = None) -> bool:
+            def progress_callback(
+                message: str, percentage: Optional[float] = None
+            ) -> bool:
                 """Progress callback for API operations"""
                 if self._cancel_requested:
                     return False
@@ -167,7 +180,7 @@ class DreamPrompterThreads:
             pixbuf, error_msg = api.generate_image(
                 prompt=prompt,
                 reference_images=reference_images,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
             )
 
             if self._cancel_requested:
@@ -187,15 +200,19 @@ class DreamPrompterThreads:
         except (ImportError, ValueError) as e:
             GLib.idle_add(self._handle_error, str(e))
         except Exception as e:
-            error_msg = _("Unexpected error during image generation: {error}").format(error=str(e))
+            error_msg = _("Unexpected error during image generation: {error}").format(
+                error=str(e)
+            )
             GLib.idle_add(self._handle_error, error_msg)
 
-    def _edit_image_worker(self, api_key: str, prompt: str, reference_images: List[str]) -> None:
+    def _edit_image_worker(
+        self, api_key: str, prompt: str, reference_images: List[str]
+    ) -> None:
         """
         Edit image in background thread
 
         Args:
-            api_key: Google Gemini API key
+            api_key: Replicate API token
             prompt: Text prompt for image editing
             reference_images: List of reference image paths
         """
@@ -208,9 +225,11 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_error, _("No image available for editing"))
                 return
 
-            api = GeminiAPI(api_key)
+            api = ReplicateAPI(api_key)
 
-            def progress_callback(message: str, percentage: Optional[float] = None) -> bool:
+            def progress_callback(
+                message: str, percentage: Optional[float] = None
+            ) -> bool:
                 """Progress callback for API operations"""
                 if self._cancel_requested:
                     return False
@@ -221,7 +240,7 @@ class DreamPrompterThreads:
                 image=self.image,
                 prompt=prompt,
                 reference_images=reference_images,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
             )
 
             if self._cancel_requested:
@@ -242,7 +261,9 @@ class DreamPrompterThreads:
         except (ImportError, ValueError) as e:
             GLib.idle_add(self._handle_error, str(e))
         except Exception as e:
-            error_msg = _("Unexpected error during image editing: {error}").format(error=str(e))
+            error_msg = _("Unexpected error during image editing: {error}").format(
+                error=str(e)
+            )
             GLib.idle_add(self._handle_error, error_msg)
 
     def _generate_layer_name(self, prompt: str) -> str:
@@ -259,8 +280,7 @@ class DreamPrompterThreads:
             original_name = self.drawable.get_name()
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
             return _("{original} (AI Edit: {prompt})").format(
-                original=original_name,
-                prompt=truncated_prompt
+                original=original_name, prompt=truncated_prompt
             )
         elif prompt:
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
@@ -286,8 +306,8 @@ class DreamPrompterThreads:
         self._current_thread = None
         self.ui.set_ui_enabled(True)
 
-        if self._callbacks.get('on_error'):
-            self._callbacks['on_error'](error_message)
+        if self._callbacks.get("on_error"):
+            self._callbacks["on_error"](error_message)
 
     def _handle_generated_image(self, pixbuf: GdkPixbuf.Pixbuf, prompt: str) -> None:
         """
@@ -323,7 +343,9 @@ class DreamPrompterThreads:
         try:
             self.ui.update_status(_("Adding edit layer..."), 0.9)
 
-            layer = integrator.create_edit_layer(self.image, self.drawable, pixbuf, layer_name)
+            layer = integrator.create_edit_layer(
+                self.image, self.drawable, pixbuf, layer_name
+            )
             if not layer:
                 self._handle_error(_("Failed to create edit layer"))
                 return
@@ -341,5 +363,5 @@ class DreamPrompterThreads:
         self._current_thread = None
         self.ui.set_ui_enabled(True)
 
-        if self._callbacks.get('on_success'):
-            self._callbacks['on_success']()
+        if self._callbacks.get("on_success"):
+            self._callbacks["on_success"]()

@@ -5,33 +5,20 @@ This audit lists every occurrence of Google Gemini, Nano Banana, or `google-gena
 ## Python Modules
 
 ### `api.py`
-- L5: Module description references "Google AI image generation".
-- L6: Notes implementation using the `google-genai` library.
 - L38: Warning string instructs users to install `google-genai`.
-- L40: Class named `GeminiAPI`.
-- L41: Docstring "Google AI client for image generation and editing".
-- L45: Constructor docstring references Gemini initialization.
-- L48: Parameter description mentions "Google Gemini API key".
 - L51: Raises `ImportError` referencing `google-genai`.
 - L55: Error message "Nano Banana API not available. Please install google-genai".
-- L71: Method docstring mentions "Nano Banana" edit requests.
 - L88: Fallback error message referencing Nano Banana and `google-genai`.
 - L93: Progress string "Preparing current image for Nano Banana...".
 - L101: Progress string "Building Nano Banana edit request...".
 - L118: Progress string "Sending edit request to Nano Banana...".
 - L126: Progress string "Processing Nano Banana edit response...".
 - L137: Error formatting string "Nano Banana API error".
-- L148: Method docstring referencing Nano Banana generation.
 - L164: Fallback error message referencing Nano Banana and `google-genai`.
 - L166: Progress string "Generating image with Nano Banana...".
 - L180: Progress string "Sending request to Nano Banana...".
 - L188: Progress string "Processing Nano Banana response...".
 - L199: Error formatting string "Nano Banana API error".
-
-### `dialog_threads.py`
-- L15: Imports `GeminiAPI` from `api`.
-- L79, L110, L149, L198: Type hints describing "Google Gemini API key".
-- L158, L211: Instantiates `GeminiAPI`.
 
 ### `dialog_events.py`
 - L98: Validation error message "Please enter your Google Gemini API key".
