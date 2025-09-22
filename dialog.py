@@ -6,24 +6,26 @@ Dream Prompter Dialog - Main coordinator
 """
 
 import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('GimpUi', '3.0')
 
-from gi.repository import GimpUi
+gi.require_version("Gtk", "3.0")
+gi.require_version("GimpUi", "3.0")
 
-from dialog_events import DreamPrompterEventHandler
-from dialog_gtk import DreamPrompterUI
-from i18n import _
-from settings import load_settings
+from gi.repository import GimpUi  # noqa: E402
+
+from dialog_events import DreamPrompterEventHandler  # noqa: E402
+from dialog_gtk import DreamPrompterUI  # noqa: E402
+from i18n import _  # noqa: E402
+from settings import load_settings  # noqa: E402
+
 
 class DreamPrompterDialog(GimpUi.Dialog):
     """Main dialog window for the Dream Prompter plugin"""
 
     def __init__(self, procedure, image, drawable):
         super().__init__(
-            title=_("Dream Prompter - Nano Banana AI Image Creator/Editor"),
+            title=_("Dream Prompter - Replicate AI Image Creator/Editor"),
             role="dream-prompter-dialog",
-            use_header_bar=True
+            use_header_bar=True,
         )
 
         self.procedure = procedure
@@ -79,7 +81,9 @@ class DreamPrompterDialog(GimpUi.Dialog):
                 self.ui.api_key_entry.set_text(str(settings["api_key"]))
 
             if "api_key_visible" in settings and self.ui.toggle_visibility_btn:
-                self.ui.toggle_visibility_btn.set_active(bool(settings["api_key_visible"]))
+                self.ui.toggle_visibility_btn.set_active(
+                    bool(settings["api_key_visible"])
+                )
 
             stored_mode = settings.get("mode", "edit")
             if self.image and self.drawable:

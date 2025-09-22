@@ -2,48 +2,47 @@
 # -*- coding: utf-8 -*-
 
 """
-Dream Prompter - Nano Banana GIMP Plugin
-A GIMP plugin for AI-powered image creation/editing using Google's Nano Banana (Gemini 2.5 Flash Image)
+Dream Prompter - Replicate GIMP Plugin
+A GIMP plugin for AI-powered image creation/editing using Replicate-hosted image models
 """
 
 import gi
 import sys
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gimp', '3.0')
-gi.require_version('GimpUi', '3.0')
-gi.require_version('GLib', '2.0')
-gi.require_version('GdkPixbuf', '2.0')
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gimp", "3.0")
+gi.require_version("GimpUi", "3.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("GdkPixbuf", "2.0")
 
-from gi.repository import Gimp, GimpUi, Gtk, GLib
+from gi.repository import Gimp, GimpUi, Gtk, GLib  # noqa: E402
 
-from dialog import DreamPrompterDialog
-from i18n import _, DOMAIN
+from dialog import DreamPrompterDialog  # noqa: E402
+from i18n import _, DOMAIN  # noqa: E402
 
 PLUGIN_NAME = "dream-prompter"
 PLUGIN_VERSION = "1.0.3"
-PLUGIN_DESCRIPTION = "AI-powered image creation/editing with Nano Banana"
+PLUGIN_DESCRIPTION = "AI-powered image creation/editing with Replicate"
+
 
 class DreamPrompter(Gimp.PlugIn):
     """Main plugin class"""
 
     def do_create_procedure(self, name):
         """Create the plugin procedure"""
-        if name == 'dream-prompter':
+        if name == "dream-prompter":
             procedure = Gimp.ImageProcedure.new(
-                self,
-                name,
-                Gimp.PDBProcType.PLUGIN,
-                self.run_dream_prompter,
-                None
+                self, name, Gimp.PDBProcType.PLUGIN, self.run_dream_prompter, None
             )
             procedure.set_image_types("*")
             procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.ALWAYS)
             procedure.set_documentation(
-                _("AI-powered image creation/editing with Nano Banana"),
-                _("Transform existing images or generate new images using Google's Gemini 2.5 Flash Image model (Nano Banana) "
-                  "with natural language prompts. Supports consistent multi-turn editing and image merging capabilities."),
-                name
+                _("AI-powered image creation/editing with Replicate"),
+                _(
+                    "Transform existing images or generate new images using Replicate-hosted models with natural language prompts. "
+                    "Supports consistent multi-turn editing and image merging capabilities."
+                ),
+                name,
             )
             procedure.set_menu_label(_("Dream Prompter..."))
             procedure.set_attribution("Josh Ellithorpe", "Josh Ellithorpe", "2025")
@@ -54,13 +53,15 @@ class DreamPrompter(Gimp.PlugIn):
 
     def do_query_procedures(self):
         """Register the plugin procedure"""
-        return ['dream-prompter']
+        return ["dream-prompter"]
 
     def do_set_i18n(self, _procname):
         """Enable localization"""
         return DOMAIN
 
-    def run_dream_prompter(self, procedure, run_mode, image, drawables, _config, _run_data):
+    def run_dream_prompter(
+        self, procedure, run_mode, image, drawables, _config, _run_data
+    ):
         """Run the Dream Prompter plugin"""
         if run_mode == Gimp.RunMode.INTERACTIVE:
             try:
@@ -77,18 +78,26 @@ class DreamPrompter(Gimp.PlugIn):
                 dialog.destroy()
 
                 if response == Gtk.ResponseType.OK:
-                    return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
+                    return procedure.new_return_values(
+                        Gimp.PDBStatusType.SUCCESS, GLib.Error()
+                    )
                 else:
-                    return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
+                    return procedure.new_return_values(
+                        Gimp.PDBStatusType.CANCEL, GLib.Error()
+                    )
 
             except Exception as e:
-                error_msg = _("Error running Dream Prompter: {error}").format(error=str(e))
+                error_msg = _("Error running Dream Prompter: {error}").format(
+                    error=str(e)
+                )
                 print(error_msg)
                 Gimp.message(error_msg)
-                return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error())
+                return procedure.new_return_values(
+                    Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error()
+                )
 
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Gimp.main(DreamPrompter.__gtype__, sys.argv)

@@ -6,12 +6,15 @@ GTK UI components for Dream Prompter dialog
 Handles all GTK interface creation and layout
 """
 
-import gi
-gi.require_version('Gtk', '3.0')
 import os
 
-from gi.repository import Gtk, Pango
-from i18n import _
+import gi
+
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk, Pango  # noqa: E402
+from i18n import _  # noqa: E402
+
 
 class DreamPrompterUI:
     """Handles all GTK UI creation and layout"""
@@ -146,7 +149,9 @@ class DreamPrompterUI:
 
         self.file_chooser_btn = Gtk.Button()
         self.file_chooser_btn.set_label(_("Select Images..."))
-        self.file_chooser_btn.set_image(Gtk.Image.new_from_icon_name("document-open-symbolic", Gtk.IconSize.BUTTON))
+        self.file_chooser_btn.set_image(
+            Gtk.Image.new_from_icon_name("document-open-symbolic", Gtk.IconSize.BUTTON)
+        )
         files_container.pack_start(self.file_chooser_btn, False, False, 0)
 
         self.files_info_label = Gtk.Label()
@@ -156,7 +161,9 @@ class DreamPrompterUI:
         files_container.pack_start(self.files_info_label, True, True, 0)
 
         self.clear_files_btn = Gtk.Button()
-        self.clear_files_btn.set_image(Gtk.Image.new_from_icon_name("edit-clear-symbolic", Gtk.IconSize.BUTTON))
+        self.clear_files_btn.set_image(
+            Gtk.Image.new_from_icon_name("edit-clear-symbolic", Gtk.IconSize.BUTTON)
+        )
         self.clear_files_btn.set_tooltip_text(_("Clear selected files"))
         self.clear_files_btn.set_sensitive(False)
         files_container.pack_start(self.clear_files_btn, False, False, 0)
@@ -181,14 +188,14 @@ class DreamPrompterUI:
         section_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         title_label = Gtk.Label()
-        title_label.set_markup(f"<b>{_('Google Gemini API Key')}</b>")
+        title_label.set_markup(f"<b>{_('Replicate API Token')}</b>")
         title_label.set_halign(Gtk.Align.START)
         section_box.pack_start(title_label, False, False, 0)
 
         key_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
 
         self.api_key_entry = Gtk.Entry()
-        self.api_key_entry.set_placeholder_text(_("Enter your Google Gemini API key..."))
+        self.api_key_entry.set_placeholder_text(_("Enter your Replicate API token..."))
         self.api_key_entry.set_visibility(False)
         self.api_key_entry.set_input_purpose(Gtk.InputPurpose.PASSWORD)
         key_container.pack_start(self.api_key_entry, True, True, 0)
@@ -203,9 +210,11 @@ class DreamPrompterUI:
         section_box.pack_start(key_container, False, False, 0)
 
         help_label = Gtk.Label()
-        help_url = "https://console.cloud.google.com/"
-        help_text = _('Get your API key from <a href="{url}">Google Cloud Console</a>').format(url=help_url)
-        help_label.set_markup(f'<small>{help_text}</small>')
+        help_url = "https://replicate.com/account/api-tokens"
+        help_text = _(
+            'Get your token from <a href="{url}">replicate.com/account/api-tokens</a>'
+        ).format(url=help_url)
+        help_label.set_markup(f"<small>{help_text}</small>")
         help_label.set_halign(Gtk.Align.START)
         help_label.set_line_wrap(True)
         section_box.pack_start(help_label, False, False, 0)
@@ -224,7 +233,11 @@ class DreamPrompterUI:
 
         self.generate_btn = Gtk.Button()
         self.generate_btn.set_label(_("Generate Edit"))
-        self.generate_btn.set_image(Gtk.Image.new_from_icon_name("applications-graphics-symbolic", Gtk.IconSize.BUTTON))
+        self.generate_btn.set_image(
+            Gtk.Image.new_from_icon_name(
+                "applications-graphics-symbolic", Gtk.IconSize.BUTTON
+            )
+        )
         self.generate_btn.get_style_context().add_class("suggested-action")
         self.generate_btn.set_size_request(150, -1)
         buttons_box.pack_start(self.generate_btn, False, False, 0)
@@ -239,7 +252,9 @@ class DreamPrompterUI:
         file_box.set_margin_start(6)
         file_box.set_margin_end(6)
 
-        icon = Gtk.Image.new_from_icon_name("image-x-generic-symbolic", Gtk.IconSize.SMALL_TOOLBAR)
+        icon = Gtk.Image.new_from_icon_name(
+            "image-x-generic-symbolic", Gtk.IconSize.SMALL_TOOLBAR
+        )
         file_box.pack_start(icon, False, False, 0)
 
         label = Gtk.Label()
@@ -310,7 +325,11 @@ class DreamPrompterUI:
     def _create_remove_button(self, file_path):
         """Create remove button for a file"""
         remove_btn = Gtk.Button()
-        remove_btn.set_image(Gtk.Image.new_from_icon_name("edit-delete-symbolic", Gtk.IconSize.SMALL_TOOLBAR))
+        remove_btn.set_image(
+            Gtk.Image.new_from_icon_name(
+                "edit-delete-symbolic", Gtk.IconSize.SMALL_TOOLBAR
+            )
+        )
         remove_btn.set_relief(Gtk.ReliefStyle.NONE)
 
         if self.event_handler:
@@ -352,10 +371,12 @@ class DreamPrompterUI:
             file_size = os.path.getsize(file_path)
             size_mb = file_size / (1024 * 1024)
             if size_mb > 7:
-                filename += " " + _("⚠️ ({size:.1f} MB - Max Size Exceeded)").format(size=size_mb)
+                filename += " " + _("⚠️ ({size:.1f} MB - Max Size Exceeded)").format(
+                    size=size_mb
+                )
             elif size_mb > 1:
                 filename += " " + _("({size:.1f} MB)").format(size=size_mb)
-        except:
+        except Exception:
             pass
 
         return filename

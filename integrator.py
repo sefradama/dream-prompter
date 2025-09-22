@@ -15,6 +15,7 @@ from i18n import _
 
 MAX_LAYER_NAME_LENGTH = 64
 
+
 def create_edit_layer(image, drawable, pixbuf, layer_name):
     """
     Create a new layer on existing image for AI edits
@@ -53,7 +54,9 @@ def create_edit_layer(image, drawable, pixbuf, layer_name):
             pixbuf_height = pixbuf.get_height()
 
             if pixbuf_width != img_width or pixbuf_height != img_height:
-                pixbuf = pixbuf.scale_simple(img_width, img_height, GdkPixbuf.InterpType.BILINEAR)
+                pixbuf = pixbuf.scale_simple(
+                    img_width, img_height, GdkPixbuf.InterpType.BILINEAR
+                )
 
         if not pixbuf.get_has_alpha():
             pixbuf = pixbuf.add_alpha(False, 0, 0, 0)
@@ -65,7 +68,7 @@ def create_edit_layer(image, drawable, pixbuf, layer_name):
             100,
             Gimp.LayerMode.NORMAL,
             0,
-            1
+            1,
         )
 
         if offset_x != 0 or offset_y != 0:
@@ -87,6 +90,7 @@ def create_edit_layer(image, drawable, pixbuf, layer_name):
     except Exception as e:
         print(f"Error creating edit layer: {e}")
         return None
+
 
 def create_new_image(pixbuf, prompt):
     """
@@ -120,7 +124,7 @@ def create_new_image(pixbuf, prompt):
             100,
             Gimp.LayerMode.NORMAL,
             0,
-            1
+            1,
         )
 
         image.insert_layer(layer, None, 0)
@@ -135,6 +139,7 @@ def create_new_image(pixbuf, prompt):
     except Exception as e:
         print(f"Error creating new image: {e}")
         return None
+
 
 def export_current_region_to_bytes(image):
     """
@@ -167,23 +172,20 @@ def export_current_region_to_bytes(image):
 
         duplicate.flatten()
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
             temp_path = temp_file.name
 
         temp_gfile = Gio.File.new_for_path(temp_path)
 
         success = Gimp.file_save(
-            Gimp.RunMode.NONINTERACTIVE,
-            duplicate,
-            temp_gfile,
-            None
+            Gimp.RunMode.NONINTERACTIVE, duplicate, temp_gfile, None
         )
 
         if not success:
             print("Failed to save region to temporary file")
             return None
 
-        with open(temp_path, 'rb') as f:
+        with open(temp_path, "rb") as f:
             image_data = f.read()
 
         print(f"Exported current region to {len(image_data)} bytes")
@@ -198,8 +200,9 @@ def export_current_region_to_bytes(image):
         if temp_path:
             try:
                 os.remove(temp_path)
-            except:
+            except Exception:
                 pass
+
 
 def export_gimp_image_to_bytes(image):
     """
@@ -222,23 +225,20 @@ def export_gimp_image_to_bytes(image):
         duplicate = image.duplicate()
         duplicate.flatten()
 
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
             temp_path = temp_file.name
 
         temp_gfile = Gio.File.new_for_path(temp_path)
 
         success = Gimp.file_save(
-            Gimp.RunMode.NONINTERACTIVE,
-            duplicate,
-            temp_gfile,
-            None
+            Gimp.RunMode.NONINTERACTIVE, duplicate, temp_gfile, None
         )
 
         if not success:
             print("Failed to save image to temporary file")
             return None
 
-        with open(temp_path, 'rb') as f:
+        with open(temp_path, "rb") as f:
             image_data = f.read()
 
         print(f"Exported GIMP image to {len(image_data)} bytes")
@@ -253,8 +253,9 @@ def export_gimp_image_to_bytes(image):
         if temp_path:
             try:
                 os.remove(temp_path)
-            except:
+            except Exception:
                 pass
+
 
 def get_selection_bounds(image):
     """
@@ -283,6 +284,7 @@ def get_selection_bounds(image):
     except Exception as e:
         print(f"Error getting selection bounds: {e}")
         return None
+
 
 def has_active_selection(image):
     """
@@ -317,6 +319,7 @@ def has_active_selection(image):
         print(f"Error checking selection: {e}")
         return False
 
+
 def _truncate_layer_name(name):
     """
     Truncate layer name to fit GIMP's limitations
@@ -333,4 +336,4 @@ def _truncate_layer_name(name):
     if len(name) <= MAX_LAYER_NAME_LENGTH:
         return name
 
-    return name[:MAX_LAYER_NAME_LENGTH-3] + "..."
+    return name[: MAX_LAYER_NAME_LENGTH - 3] + "..."

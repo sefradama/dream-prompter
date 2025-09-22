@@ -91,7 +91,7 @@ class DreamPrompterThreads:
             return
 
         if not api_key or not api_key.strip():
-            self._handle_error(_("API key is required"))
+            self._handle_error(_("Replicate API token is required"))
             return
 
         if not prompt or not prompt.strip():
@@ -132,7 +132,7 @@ class DreamPrompterThreads:
             return
 
         if not api_key or not api_key.strip():
-            self._handle_error(_("API key is required"))
+            self._handle_error(_("Replicate API token is required"))
             return
 
         if not prompt or not prompt.strip():
