@@ -27,7 +27,6 @@ PROGRESS_PREPARE = 0.1
 PROGRESS_PROCESS = 0.7
 PROGRESS_UPLOAD = 0.5
 SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
-DEFAULT_MODEL_VERSION = "google/nano-banana"
 ENV_TOKEN_VAR = "REPLICATE_API_TOKEN"
 
 try:
@@ -45,7 +44,7 @@ except ImportError:
 class ReplicateAPI:
     """Replicate client for image generation and editing operations."""
 
-    def __init__(self, api_key: str, model_version: Optional[str] = None) -> None:
+    def __init__(self, api_key: str, model_version: str) -> None:
         """Initialize the Replicate API client."""
 
         if not REPLICATE_AVAILABLE:
@@ -66,9 +65,7 @@ class ReplicateAPI:
             )
 
         self.api_key = resolved_key
-        self.model_version = (model_version or DEFAULT_MODEL_VERSION).strip()
-        if not self.model_version:
-            self.model_version = DEFAULT_MODEL_VERSION
+        self.model_version = model_version.strip() if model_version else ""
 
         self.client = replicate.Client(api_token=self.api_key) if replicate else None
 

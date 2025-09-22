@@ -6,8 +6,9 @@ Threading operations for Dream Prompter dialog
 Handles all background AI processing and image operations
 """
 
+import os
 import threading
-from typing import Dict, Callable, Optional, Any, List
+from typing import Any, Callable, Dict, List, Optional
 
 from gi.repository import GLib, GdkPixbuf
 
@@ -15,6 +16,9 @@ import integrator
 from api import ReplicateAPI
 from dialog_gtk import DreamPrompterUI
 from i18n import _
+
+DEFAULT_MODEL_ENV_VAR = "REPLICATE_DEFAULT_MODEL"
+DEFAULT_MODEL_FALLBACK = "google/nano-banana"
 
 
 class DreamPrompterThreads:
@@ -44,6 +48,9 @@ class DreamPrompterThreads:
         self._processing: bool = False
         self._cancel_requested: bool = False
         self._current_thread: Optional[threading.Thread] = None
+
+        default_model = os.getenv(DEFAULT_MODEL_ENV_VAR, DEFAULT_MODEL_FALLBACK).strip()
+        self._model_version: str = default_model or DEFAULT_MODEL_FALLBACK
 
     def cancel_processing(self) -> None:
         """Request cancellation of current processing"""
@@ -166,7 +173,7 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_cancelled)
                 return
 
-            api = ReplicateAPI(api_key)
+            api = ReplicateAPI(api_key, self._model_version)
 
             def progress_callback(
                 message: str, percentage: Optional[float] = None
@@ -225,7 +232,7 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_error, _("No image available for editing"))
                 return
 
-            api = ReplicateAPI(api_key)
+            api = ReplicateAPI(api_key, self._model_version)
 
             def progress_callback(
                 message: str, percentage: Optional[float] = None
