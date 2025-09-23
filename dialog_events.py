@@ -6,11 +6,16 @@ Event handlers for Dream Prompter dialog
 Handles all user interactions and UI events
 """
 
+import os
+
 from gi.repository import Gtk, GLib
 
 from dialog_threads import DreamPrompterThreads
 from i18n import _
 from settings import store_settings, load_settings
+
+DEFAULT_MODEL_ENV_VAR = "REPLICATE_DEFAULT_MODEL"
+DEFAULT_MODEL_FALLBACK = "google/nano-banana"
 
 
 class DreamPrompterEventHandler:
@@ -29,6 +34,8 @@ class DreamPrompterEventHandler:
         )
 
         settings = load_settings()
+        self._model_version: str = self._determine_initial_model_version(settings)
+        setattr(self.ui, "selected_model_version", self._model_version)
         if self.ui.toggle_visibility_btn and self.ui.api_key_entry:
             is_visible = settings.get("api_key_visible", False)
             self.ui.toggle_visibility_btn.set_active(is_visible)
@@ -73,6 +80,24 @@ class DreamPrompterEventHandler:
         if self.ui.api_key_entry:
             self.ui.api_key_entry.connect("changed", self.on_api_key_changed)
 
+    def _determine_initial_model_version(self, settings):
+        """Resolve the starting model version from settings or environment."""
+
+        stored_version = ""
+        if isinstance(settings, dict):
+            raw_version = settings.get("model_version", "")
+            if isinstance(raw_version, str):
+                stored_version = raw_version.strip()
+
+        if stored_version:
+            return stored_version
+
+        env_version = os.getenv(DEFAULT_MODEL_ENV_VAR, "").strip()
+        if env_version:
+            return env_version
+
+        return DEFAULT_MODEL_FALLBACK
+
     def on_api_key_changed(self, _entry):
         """Handle API key changes"""
         self.update_generate_button_state()
@@ -88,6 +113,33 @@ class DreamPrompterEventHandler:
         """Clear selected files"""
         self.ui.selected_files.clear()
         self.ui.update_files_display()
+
+    def get_selected_model_version(self) -> str:
+        """Return the currently selected Replicate model version."""
+
+        combo = getattr(self.ui, "model_combo", None)
+        if combo is not None and hasattr(combo, "get_active_id"):
+            active_id = combo.get_active_id()
+            if active_id:
+                self._model_version = active_id
+                return active_id
+
+        selected_attr = getattr(self.ui, "selected_model_version", "")
+        if isinstance(selected_attr, str) and selected_attr.strip():
+            normalized = selected_attr.strip()
+            self._model_version = normalized
+            return normalized
+
+        if isinstance(self._model_version, str) and self._model_version.strip():
+            return self._model_version.strip()
+
+        env_version = os.getenv(DEFAULT_MODEL_ENV_VAR, "").strip()
+        if env_version:
+            self._model_version = env_version
+            return env_version
+
+        self._model_version = DEFAULT_MODEL_FALLBACK
+        return DEFAULT_MODEL_FALLBACK
 
     def on_generate(self, _button):
         """Handle generate button - main AI processing entry point"""
@@ -112,16 +164,26 @@ class DreamPrompterEventHandler:
 
         mode = self.dialog.get_current_mode()
         api_key_visible = self.dialog.get_api_key_visible()
+        model_version = self.get_selected_model_version()
+
         store_settings(api_key, mode, prompt_text, api_key_visible)
 
         if self.ui.status_label:
             self.ui.status_label.set_text(_("Initializing Replicate request..."))
 
         if mode == "edit":
-            self.threads.start_edit_thread(api_key, prompt_text, self.ui.selected_files)
+            self.threads.start_edit_thread(
+                api_key,
+                prompt_text,
+                self.ui.selected_files,
+                model_version,
+            )
         else:
             self.threads.start_generate_thread(
-                api_key, prompt_text, self.ui.selected_files
+                api_key,
+                prompt_text,
+                self.ui.selected_files,
+                model_version,
             )
 
     def on_mode_changed(self, radio_button):

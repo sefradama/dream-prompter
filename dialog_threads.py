@@ -6,7 +6,6 @@ Threading operations for Dream Prompter dialog
 Handles all background AI processing and image operations
 """
 
-import os
 import threading
 from typing import Any, Callable, Dict, List, Optional
 
@@ -16,9 +15,6 @@ import integrator
 from api import ReplicateAPI
 from dialog_gtk import DreamPrompterUI
 from i18n import _
-
-DEFAULT_MODEL_ENV_VAR = "REPLICATE_DEFAULT_MODEL"
-DEFAULT_MODEL_FALLBACK = "google/nano-banana"
 
 
 class DreamPrompterThreads:
@@ -49,8 +45,7 @@ class DreamPrompterThreads:
         self._cancel_requested: bool = False
         self._current_thread: Optional[threading.Thread] = None
 
-        default_model = os.getenv(DEFAULT_MODEL_ENV_VAR, DEFAULT_MODEL_FALLBACK).strip()
-        self._model_version: str = default_model or DEFAULT_MODEL_FALLBACK
+        self._model_version: Optional[str] = None
 
     def cancel_processing(self) -> None:
         """Request cancellation of current processing"""
@@ -83,8 +78,27 @@ class DreamPrompterThreads:
 
         self._callbacks = callbacks
 
+    def _normalize_model_version(self, model_version: Optional[str]) -> str:
+        """Return a sanitized model version string if available."""
+
+        if model_version:
+            normalized = model_version.strip()
+            if normalized:
+                return normalized
+
+        if self._model_version:
+            previous = self._model_version.strip()
+            if previous:
+                return previous
+
+        return ""
+
     def start_generate_thread(
-        self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None
+        self,
+        api_key: str,
+        prompt: str,
+        reference_images: Optional[List[str]] = None,
+        model_version: Optional[str] = None,
     ) -> None:
         """
         Start image generation in background thread
@@ -105,19 +119,30 @@ class DreamPrompterThreads:
             self._handle_error(_("Prompt is required"))
             return
 
+        resolved_model = self._normalize_model_version(model_version)
+        if not resolved_model:
+            self._handle_error(_("Replicate model version is required"))
+            return
+
+        self._model_version = resolved_model
+
         self._processing = True
         self._cancel_requested = False
         self.ui.set_ui_enabled(False)
 
         self._current_thread = threading.Thread(
             target=self._generate_image_worker,
-            args=(api_key, prompt, reference_images or []),
+            args=(api_key, prompt, resolved_model, reference_images or []),
         )
         self._current_thread.daemon = True
         self._current_thread.start()
 
     def start_edit_thread(
-        self, api_key: str, prompt: str, reference_images: Optional[List[str]] = None
+        self,
+        api_key: str,
+        prompt: str,
+        reference_images: Optional[List[str]] = None,
+        model_version: Optional[str] = None,
     ) -> None:
         """
         Start image editing in background thread
@@ -146,19 +171,30 @@ class DreamPrompterThreads:
             self._handle_error(_("Prompt is required"))
             return
 
+        resolved_model = self._normalize_model_version(model_version)
+        if not resolved_model:
+            self._handle_error(_("Replicate model version is required"))
+            return
+
+        self._model_version = resolved_model
+
         self._processing = True
         self._cancel_requested = False
         self.ui.set_ui_enabled(False)
 
         self._current_thread = threading.Thread(
             target=self._edit_image_worker,
-            args=(api_key, prompt, reference_images or []),
+            args=(api_key, prompt, resolved_model, reference_images or []),
         )
         self._current_thread.daemon = True
         self._current_thread.start()
 
     def _generate_image_worker(
-        self, api_key: str, prompt: str, reference_images: List[str]
+        self,
+        api_key: str,
+        prompt: str,
+        model_version: str,
+        reference_images: List[str],
     ) -> None:
         """
         Generate image in background thread
@@ -166,6 +202,7 @@ class DreamPrompterThreads:
         Args:
             api_key: Replicate API token
             prompt: Text prompt for image generation
+            model_version: Replicate model version identifier to use
             reference_images: List of reference image paths
         """
         try:
@@ -173,7 +210,7 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_cancelled)
                 return
 
-            api = ReplicateAPI(api_key, self._model_version)
+            api = ReplicateAPI(api_key, model_version)
 
             def progress_callback(
                 message: str, percentage: Optional[float] = None
@@ -213,7 +250,11 @@ class DreamPrompterThreads:
             GLib.idle_add(self._handle_error, error_msg)
 
     def _edit_image_worker(
-        self, api_key: str, prompt: str, reference_images: List[str]
+        self,
+        api_key: str,
+        prompt: str,
+        model_version: str,
+        reference_images: List[str],
     ) -> None:
         """
         Edit image in background thread
@@ -221,6 +262,7 @@ class DreamPrompterThreads:
         Args:
             api_key: Replicate API token
             prompt: Text prompt for image editing
+            model_version: Replicate model version identifier to use
             reference_images: List of reference image paths
         """
         try:
@@ -232,7 +274,7 @@ class DreamPrompterThreads:
                 GLib.idle_add(self._handle_error, _("No image available for editing"))
                 return
 
-            api = ReplicateAPI(api_key, self._model_version)
+            api = ReplicateAPI(api_key, model_version)
 
             def progress_callback(
                 message: str, percentage: Optional[float] = None
