@@ -135,12 +135,15 @@ def get_config_file() -> str:
     else:
         gimp_dir = _get_linux_config_dir()
 
+    gimp_dir = _expand_and_normalize_path(gimp_dir)
+
     try:
         os.makedirs(gimp_dir, exist_ok=True)
     except (OSError, PermissionError) as e:
         print(f"Warning: Could not create config directory {gimp_dir}: {e}")
 
-    return os.path.join(gimp_dir, CONFIG_FILE_NAME)
+    config_path = os.path.join(gimp_dir, CONFIG_FILE_NAME)
+    return _expand_and_normalize_path(config_path)
 
 
 def load_settings() -> SettingsDict:
@@ -208,15 +211,28 @@ def store_settings(
         print(f"Unexpected error storing settings: {e}")
 
 
+def _expand_and_normalize_path(path: str) -> str:
+    """Expand user shorthand and normalize a filesystem path."""
+
+    expanded = os.path.expanduser(path)
+    # os.path.abspath preserves UNC prefixes on Windows while ensuring an
+    # absolute path that works across platforms.
+    absolute = os.path.abspath(expanded)
+    return os.path.normpath(absolute)
+
+
 def _get_linux_config_dir() -> str:
     """Get Linux config directory"""
-    return os.path.join(os.path.expanduser("~"), ".config", "GIMP", GIMP_VERSION)
+
+    path = os.path.join(os.path.expanduser("~"), ".config", "GIMP", GIMP_VERSION)
+    return _expand_and_normalize_path(path)
 
 
 def _get_macos_config_dir() -> str:
     """Get macOS config directory"""
     home = os.path.expanduser("~")
-    return os.path.join(home, "Library", "Application Support", "GIMP", GIMP_VERSION)
+    path = os.path.join(home, "Library", "Application Support", "GIMP", GIMP_VERSION)
+    return _expand_and_normalize_path(path)
 
 
 def _get_windows_config_dir() -> str:
@@ -224,4 +240,5 @@ def _get_windows_config_dir() -> str:
     appdata = os.environ.get("APPDATA")
     if not appdata:
         appdata = os.path.expanduser("~\\AppData\\Roaming")
-    return os.path.join(appdata, "GIMP", GIMP_VERSION)
+    path = os.path.join(appdata, "GIMP", GIMP_VERSION)
+    return _expand_and_normalize_path(path)
