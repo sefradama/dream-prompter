@@ -503,6 +503,9 @@ class DreamPrompterEventHandler:
         """Progress callback that works while dialog is still open"""
         if self.ui.status_label:
             self.ui.status_label.set_text(message)
+        # Update progress bar if available
+        if hasattr(self.ui, "status_progress_ui") and self.ui.status_progress_ui:
+            self.ui.status_progress_ui.update_status(message, percentage)
         return True  # Continue processing
 
     def _sync_stream_callback(self, message):

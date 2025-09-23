@@ -14,10 +14,10 @@ MAX_DOWNLOAD_SIZE_MB = 50
 """Maximum download size for images in MB"""
 
 # Replicate API limits
-MAX_REFERENCE_IMAGES_EDIT = 2
+MAX_REFERENCE_IMAGES_EDIT = 9
 """Maximum reference images allowed for edit mode"""
 
-MAX_REFERENCE_IMAGES_GENERATE = 3
+MAX_REFERENCE_IMAGES_GENERATE = 10
 """Maximum reference images allowed for generate mode"""
 
 # Progress reporting constants

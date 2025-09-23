@@ -33,7 +33,7 @@ class PromptInputUI:
 
         scroll_window = Gtk.ScrolledWindow()
         scroll_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scroll_window.set_min_content_height(120)
+        scroll_window.set_min_content_height(60)
 
         self.prompt_textview = Gtk.TextView()
         self.prompt_textview.set_wrap_mode(Gtk.WrapMode.WORD)
