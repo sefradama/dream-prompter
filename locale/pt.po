@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Dream Prompter 1.0.3\n"
 "Report-Msgid-Bugs-To: quest@mac.com\n"
-"POT-Creation-Date: 2025-09-20 16:13-1000\n"
+"POT-Creation-Date: 2025-09-23 10:18+0000\n"
 "PO-Revision-Date: 2025-01-15 12:00+0000\n"
 "Last-Translator: Translation Team\n"
 "Language-Team: Portuguese\n"
@@ -17,57 +17,45 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: dialog_gtk.py:357
+#: dialog_gtk.py:378
 #, python-brace-format
 msgid "({size:.1f} MB)"
 msgstr "({size:.1f} MB)"
 
-#: integrator.py:111
+#: integrator.py:115
 msgid "AI Generated"
 msgstr "Gerado por IA"
 
-#: dialog_threads.py:267
+#: dialog_threads.py:336
 #, python-brace-format
 msgid "AI Generated: {prompt}"
 msgstr "Gerado por IA: {prompt}"
 
-#: dialog_threads.py:269 integrator.py:331
+#: dialog_threads.py:338 integrator.py:334
 msgid "AI Layer"
 msgstr "Camada IA"
 
-#: dialog_gtk.py:293
-msgid "AI Prompt"
-msgstr "Prompt de IA"
+#: dream-prompter.py:40
+msgid "AI-powered image creation/editing with Replicate"
+msgstr "Criação/edição de imagens com IA usando o Replicate"
 
-#: dream-prompter.py:43
-msgid "AI-powered image creation/editing with Nano Banana"
-msgstr "Criação/edição de imagens com IA usando Nano Banana"
-
-#: api.py:58 dialog_threads.py:87 dialog_threads.py:126
-msgid "API key is required"
-msgstr "Chave API é obrigatória"
-
-#: dialog_threads.py:324
+#: dialog_threads.py:393
 msgid "Adding edit layer..."
 msgstr "Adicionando camada de edição..."
 
-#: dialog_gtk.py:141
-msgid "Additional Images (Optional)"
-msgstr "Imagens Adicionais (Opcional)"
+#: api.py:113
+msgid "Building Replicate edit request..."
+msgstr "Preparando solicitação de edição no Replicate..."
 
-#: api.py:101
-msgid "Building Nano Banana edit request..."
-msgstr "Construindo solicitação de edição Nano Banana..."
-
-#: dialog_events.py:163 dialog_gtk.py:221
+#: dialog_events.py:234 dialog_gtk.py:230
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: dialog_threads.py:48
+#: dialog_threads.py:53
 msgid "Cancelling..."
 msgstr "Cancelando..."
 
-#: dialog_events.py:192
+#: dialog_events.py:265
 #, python-brace-format
 msgid ""
 "Cannot add {count} files. Maximum 2 reference images allowed in edit mode."
@@ -75,287 +63,275 @@ msgstr ""
 "Não é possível adicionar {count} arquivos. Máximo de 2 imagens de referência "
 "permitidas no modo edição."
 
-#: dialog_events.py:194
+#: dialog_events.py:271
 #, python-brace-format
 msgid "Cannot add {count} files. Maximum 3 reference images allowed."
 msgstr ""
 "Não é possível adicionar {count} arquivos. Máximo de 3 imagens de referência "
 "permitidas."
 
-#: dialog_gtk.py:160
+#: dialog_gtk.py:167
 msgid "Clear selected files"
 msgstr "Limpar arquivos selecionados"
 
-#: dialog_threads.py:301
+#: api.py:135
+msgid "Collecting Replicate edit output..."
+msgstr ""
+
+#: api.py:195
+msgid "Collecting Replicate generation output..."
+msgstr ""
+
+#: dialog_threads.py:370
 msgid "Creating GIMP image..."
 msgstr "Criando imagem do GIMP..."
 
-#: dialog.py:24
-msgid "Dream Prompter - Nano Banana AI Image Creator/Editor"
-msgstr "Dream Prompter - Criador/Editor de Imagens IA Nano Banana"
+#: dialog.py:26
+msgid "Dream Prompter - Replicate AI Image Creator/Editor"
+msgstr "Dream Prompter - Criador/Editor de imagens IA do Replicate"
 
-#: dream-prompter.py:48
+#: dream-prompter.py:47
 msgid "Dream Prompter..."
 msgstr "Dream Prompter..."
 
-#: dialog_gtk.py:276
+#: dialog_gtk.py:291
 msgid "Edit Image"
 msgstr "Editar Imagem"
 
-#: dialog_threads.py:331
+#: dialog_threads.py:402
 msgid "Edit layer created!"
 msgstr "Camada de edição criada!"
 
-#: dialog_events.py:106
+#: dialog_events.py:162
 msgid "Edit mode requires a selected layer"
 msgstr "Modo de edição requer uma camada selecionada"
 
-#: dialog_gtk.py:191
-msgid "Enter your Google Gemini API key..."
-msgstr "Digite sua chave API do Google Gemini..."
+#: dialog_gtk.py:198
+msgid "Enter your Replicate API token..."
+msgstr "Digite seu token de API do Replicate..."
 
-#: dialog_threads.py:312
+#: dialog_threads.py:381
 #, python-brace-format
 msgid "Error creating GIMP image: {error}"
 msgstr "Erro ao criar imagem do GIMP: {error}"
 
-#: dialog_threads.py:335
+#: dialog_threads.py:406
 #, python-brace-format
 msgid "Error creating edit layer: {error}"
 msgstr "Erro ao criar camada de edição: {error}"
 
-#: dream-prompter.py:85
+#: dream-prompter.py:90
 #, python-brace-format
 msgid "Error running Dream Prompter: {error}"
 msgstr "Erro executando Dream Prompter: {error}"
 
-#: dialog_threads.py:305
+#: dialog_threads.py:374
 msgid "Failed to create GIMP image"
 msgstr "Falha ao criar imagem do GIMP"
 
-#: dialog_threads.py:328
+#: dialog_threads.py:399
 msgid "Failed to create edit layer"
 msgstr "Falha ao criar camada de edição"
 
-#: api.py:99
+#: api.py:266
+msgid "Failed to decode image data from Replicate response"
+msgstr "Falha ao decodificar os dados de imagem da resposta do Replicate"
+
+#: api.py:110
 msgid "Failed to export current image"
 msgstr "Falha ao exportar imagem atual"
 
-#: dialog_events.py:133 dialog_gtk.py:226
+#: dialog_events.py:201 dialog_gtk.py:235
 msgid "Generate Edit"
 msgstr "Gerar Edição"
 
-#: dialog_events.py:138 dialog_gtk.py:280
+#: dialog_events.py:208 dialog_gtk.py:295
 msgid "Generate Image"
 msgstr "Gerar Imagem"
 
-#: api.py:166
-msgid "Generating image with Nano Banana..."
-msgstr "Gerando imagem com Nano Banana..."
+#: dialog_gtk.py:215
+#, fuzzy, python-brace-format
+msgid ""
+"Get your token from <a href=\"{url}\">replicate.com/account/api-tokens</a>"
+msgstr "Obtenha seu token em <a href=\"{url}\">replicate.com/account/api-tokens</a>"
 
-#: api.py:267
-#, python-brace-format
-msgid "Generation stopped: {reason}"
-msgstr "Geração interrompida: {reason}"
-
-#: dialog_gtk.py:207
-#, python-brace-format
-msgid "Get your API key from <a href=\"{url}\">Google Cloud Console</a>"
-msgstr "Obtenha sua chave API do <a href=\"{url}\">Google Cloud Console</a>"
-
-#: dialog_gtk.py:184
-msgid "Google Gemini API Key"
-msgstr "Chave API do Google Gemini"
-
-#: dialog_events.py:206
+#: dialog_events.py:289
 msgid "Hide API key"
 msgstr "Ocultar chave API"
 
-#: api.py:132
+#: api.py:142
 msgid "Image editing complete!"
 msgstr "Edição de imagem concluída!"
 
-#: dialog_threads.py:308
+#: dialog_threads.py:377
 msgid "Image generated successfully!"
 msgstr "Imagem gerada com sucesso!"
 
-#: api.py:194
+#: api.py:202
 msgid "Image generation complete!"
 msgstr "Geração de imagem concluída!"
 
-#: dialog_events.py:114
-msgid "Initializing API request..."
-msgstr "Inicializando solicitação da API..."
+#: dialog_events.py:172
+msgid "Initializing Replicate request..."
+msgstr "Inicializando solicitação ao Replicate..."
 
-#: api.py:137 api.py:199
-#, python-brace-format
-msgid "Nano Banana API error: {error}"
-msgstr "Erro da API Nano Banana: {error}"
-
-#: api.py:55 api.py:88 api.py:164
-msgid "Nano Banana API not available. Please install google-genai"
-msgstr "API Nano Banana não disponível. Por favor instale google-genai"
-
-#: api.py:91
+#: api.py:100
 msgid "No GIMP image provided for editing"
 msgstr "Nenhuma imagem do GIMP fornecida para edição"
 
-#: dialog_gtk.py:153 dialog_gtk.py:372
+#: dialog_gtk.py:158 dialog_gtk.py:393
 msgid "No additional images selected"
 msgstr "Nenhuma imagem adicional selecionada"
 
-#: api.py:270
-msgid "No candidates in API response"
-msgstr "Nenhum candidato na resposta da API"
-
-#: api.py:274
-msgid "No content parts in API response"
-msgstr "Nenhuma parte de conteúdo na resposta da API"
-
-#: dialog_threads.py:122 dialog_threads.py:208
+#: dialog_threads.py:163 dialog_threads.py:274
 msgid "No image available for editing"
 msgstr "Nenhuma imagem disponível para edição"
 
-#: api.py:286
-msgid "No image data found in response"
-msgstr "Nenhum dado de imagem encontrado na resposta"
+#: api.py:260
+msgid "No image data found in Replicate response"
+msgstr "Nenhum dado de imagem encontrado na resposta do Replicate"
 
-#: dialog_threads.py:182 dialog_threads.py:236
+#: dialog_threads.py:239 dialog_threads.py:304
 msgid "No image data received from API"
 msgstr "Nenhum dado de imagem recebido da API"
 
-#: dialog_threads.py:118
+#: dialog_threads.py:159
 msgid "No layer available for editing"
 msgstr "Nenhuma camada disponível para edição"
 
-#: dialog_gtk.py:270
-msgid "Operation Mode"
-msgstr "Modo de Operação"
-
-#: api.py:94 api.py:102 api.py:119 api.py:127 api.py:167 api.py:181 api.py:189
-#: dialog_threads.py:275
+#: api.py:105 api.py:115 api.py:130 api.py:137 api.py:179 api.py:190 api.py:197
+#: dialog_threads.py:344
 msgid "Operation cancelled"
 msgstr "Operação cancelada"
 
-#: dialog_events.py:102
+#: dialog_events.py:154
 msgid "Please enter a prompt"
 msgstr "Por favor digite um prompt"
 
-#: dialog_events.py:98
-msgid "Please enter your Google Gemini API key"
-msgstr "Por favor digite sua chave API do Google Gemini"
+#: dialog_events.py:150
+msgid "Please enter your Replicate API token"
+msgstr "Por favor, digite seu token de API do Replicate"
 
-#: api.py:93
-msgid "Preparing current image for Nano Banana..."
-msgstr "Preparando imagem atual para Nano Banana..."
+#: api.py:177
+msgid "Preparing Replicate generation request..."
+msgstr "Preparando solicitação de geração no Replicate..."
 
-#: api.py:126
-msgid "Processing Nano Banana edit response..."
-msgstr "Processando resposta de edição Nano Banana..."
+#: api.py:103
+msgid "Preparing current image for Replicate..."
+msgstr "Preparando a imagem atual para o Replicate..."
 
-#: api.py:188
-msgid "Processing Nano Banana response..."
-msgstr "Processando resposta Nano Banana..."
-
-#: dialog_threads.py:91 dialog_threads.py:130
+#: dialog_threads.py:119 dialog_threads.py:171
 msgid "Prompt is required"
 msgstr "Prompt é obrigatório"
 
-#: dialog_gtk.py:78 dialog_gtk.py:335
+#: api.py:128
+msgid "Queueing Replicate edit prediction..."
+msgstr "Colocando a previsão de edição do Replicate na fila..."
+
+#: api.py:188
+msgid "Queueing Replicate generation prediction..."
+msgstr "Colocando a previsão de geração do Replicate na fila..."
+
+#: dialog_gtk.py:81 dialog_gtk.py:354
 msgid "Ready"
 msgstr "Pronto"
 
-#: dialog_events.py:130
+#: dialog_events.py:198
 msgid "Reduced to 2 reference images for edit mode"
 msgstr "Reduzido para 2 imagens de referência para modo edição"
 
-#: dialog_events.py:164
+#: dialog_gtk.py:191
+msgid "Replicate API Token"
+msgstr "Token de API do Replicate"
+
+#: api.py:97 api.py:174
+msgid "Replicate API client is not available"
+msgstr "O cliente da API do Replicate não está disponível"
+
+#: api.py:147 api.py:207
+#, fuzzy, python-brace-format
+msgid "Replicate API error: {error}"
+msgstr "Erro da API do Replicate: {error}"
+
+#: api.py:52
+msgid "Replicate API not available. Please install the replicate package."
+msgstr "API do Replicate indisponível. Instale o pacote replicate."
+
+#: dialog_threads.py:115 dialog_threads.py:167
+msgid "Replicate API token is required"
+msgstr "É necessário o token de API do Replicate"
+
+#: api.py:63
+#, python-brace-format
+msgid "Replicate API token not provided. Set the field or export {env_var}."
+msgstr "Token de API do Replicate não fornecido. Preencha o campo ou exporte {env_var}."
+
+#: dialog_threads.py:124 dialog_threads.py:176
+msgid "Replicate model version is required"
+msgstr "É necessária a versão do modelo do Replicate"
+
+#: dialog_events.py:235
 msgid "Select"
 msgstr "Selecionar"
 
-#: dialog_gtk.py:148
+#: dialog_gtk.py:151
 msgid "Select Images..."
 msgstr "Selecionar Imagens..."
 
-#: dialog_events.py:158
+#: dialog_events.py:229
 msgid "Select Reference Images"
 msgstr "Selecionar Imagens de Referência"
 
-#: dialog_events.py:135
-msgid "Select up to 2 additional images"
-msgstr "Selecione até 2 imagens adicionais"
-
-#: dialog_events.py:140
-msgid "Select up to 3 additional images"
-msgstr "Selecione até 3 imagens adicionais"
-
-#: api.py:118
-msgid "Sending edit request to Nano Banana..."
-msgstr "Enviando solicitação de edição para Nano Banana..."
-
-#: api.py:180
-msgid "Sending request to Nano Banana..."
-msgstr "Enviando solicitação para Nano Banana..."
-
-#: dialog_events.py:210
+#: dialog_events.py:297
 msgid "Show API key"
 msgstr "Mostrar chave API"
 
-#: dialog_gtk.py:200
+#: dialog_gtk.py:207
 msgid "Show/Hide API key"
 msgstr "Mostrar/Ocultar chave API"
 
-#: dialog_events.py:167
+#: dialog_events.py:238
 msgid "Supported Images (PNG, JPEG, WebP)"
 msgstr "Imagens Suportadas (PNG, JPEG, WebP)"
 
-#: dream-prompter.py:44
+#: dream-prompter.py:42
 msgid ""
-"Transform existing images or generate new images using Google's Gemini 2.5 "
-"Flash Image model (Nano Banana) with natural language prompts. Supports "
-"consistent multi-turn editing and image merging capabilities."
-msgstr ""
-"Transforme imagens existentes ou gere novas imagens usando o modelo Gemini "
-"2.5 Flash Image do Google (Nano Banana) com prompts em linguagem natural. "
-"Suporta edição multi-turno consistente e capacidades de fusão de imagens."
+"Transform existing images or generate new images using Replicate-hosted "
+"models with natural language prompts. Supports consistent multi-turn editing "
+"and image merging capabilities."
+msgstr "Transforme imagens existentes ou gere novas usando modelos hospedados no Replicate com prompts em linguagem natural. Suporta edição consistente em múltiplas etapas e recursos de mesclagem de imagens."
 
-#: dialog_threads.py:245
+#: dialog_threads.py:313
 #, python-brace-format
 msgid "Unexpected error during image editing: {error}"
 msgstr "Erro inesperado durante edição de imagem: {error}"
 
-#: dialog_threads.py:190
+#: dialog_threads.py:247
 #, python-brace-format
 msgid "Unexpected error during image generation: {error}"
 msgstr "Erro inesperado durante geração de imagem: {error}"
 
-#: api.py:139 api.py:201
+#: api.py:149 api.py:209
 #, python-brace-format
 msgid "Unexpected error: {error}"
 msgstr "Erro inesperado: {error}"
 
-#: dialog_gtk.py:385
+#: dialog_gtk.py:406
 #, python-brace-format
 msgid "{count} image selected"
 msgstr "{count} imagem selecionada"
 
-#: dialog_gtk.py:387
+#: dialog_gtk.py:408
 #, python-brace-format
 msgid "{count} images selected"
 msgstr "{count} imagens selecionadas"
 
-#: dialog_threads.py:261
+#: dialog_threads.py:331
 #, python-brace-format
 msgid "{original} (AI Edit: {prompt})"
 msgstr "{original} (Edição IA: {prompt})"
 
-#: dialog_gtk.py:355
+#: dialog_gtk.py:374
 #, python-brace-format
 msgid "⚠️ ({size:.1f} MB - Max Size Exceeded)"
 msgstr "⚠️ ({size:.1f} MB - Tamanho Máximo Excedido)"
-
-#~ msgid "Generate AI Edit"
-#~ msgstr "Gerar Edição IA"
-
-#~ msgid "Generate new image"
-#~ msgstr "Gerar nova imagem"
