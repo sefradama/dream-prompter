@@ -95,6 +95,16 @@ class DreamPrompterDialog(GimpUi.Dialog):
             if settings.get("prompt") and self.ui.prompt_buffer:
                 self.ui.prompt_buffer.set_text(str(settings["prompt"]))
 
+            stored_model = settings.get("model_version", "")
+            if hasattr(self.ui, "set_selected_model_version"):
+                self.ui.set_selected_model_version(
+                    stored_model if isinstance(stored_model, str) else ""
+                )
+                try:
+                    self.events.get_selected_model_version()
+                except Exception as error:
+                    print(f"Error syncing model version: {error}")
+
         except Exception as e:
             print(f"Error loading settings: {e}")
 
