@@ -12,30 +12,30 @@
 
 ## 2. API Layer Replacement (`api.py`)
 - [x] Rename `GeminiAPI` to `ReplicateAPI` and update docstrings and module header comments to describe Replicate usage.
-- [ ] Remove Google-specific imports (`google.genai` packages) and constants that only apply to Nano Banana (e.g., progress messages with "Nano Banana").
-- [ ] Add `import replicate` and handle optional dependency messaging (warn if the library is missing with install instructions for `replicate`).
-- [ ] Initialize a Replicate client via `replicate.Client(api_token=api_key)` inside `__init__`, storing the token for future requests.
-- [ ] Extend the constructor to accept a `model_version` (full Replicate identifier like `owner/model:version_hash`) so we can route both generation and editing to the user-selected model.
-- [ ] Update `generate_image`:
-  - [ ] Build the Replicate input payload (at minimum `{"prompt": prompt}`) and attach reference images by opening each file and passing `io.BytesIO` handles when the selected model supports them.
-  - [ ] Call the API using either `self.client.run(model_version, input=payload)` or `self.client.predictions.create` depending on synchronous needs; parse streaming/batch output to obtain binary image data (Replicate typically returns a list of URLs or binary data).
-  - [ ] Download or decode the returned image(s); if URLs are provided, use `requests` (already vendored?) or `urllib.request` to fetch the image bytes before loading them into a `GdkPixbuf`.
-  - [ ] Preserve reference image validation (`_validate_reference_image`) but generalize MIME/type checks if Replicate has different limits (retain 7MB/PNG-JPEG-WebP unless the chosen models demand changes).
-- [ ] Update `edit_image` to send the current GIMP layer as an input image where the selected Replicate model supports image-to-image operations:
-  - [ ] Export the current layer to PNG bytes (`integrator.export_gimp_image_to_bytes` already does this).
-  - [ ] Feed that into the payload (`{"prompt": prompt, "image": BytesIO(...)}`) alongside optional reference images if accepted by the chosen model.
-- [ ] Replace `_parse_image_response` logic with Replicate-specific parsing (their responses may be lists of URLs, base64 strings, or file handles); loop through outputs until a usable image byte sequence is found and convert to `GdkPixbuf` as before.
-- [ ] Update progress callback messaging to remove "Nano Banana" branding and reflect Replicate steps (e.g., "Queueing Replicate job", "Waiting for prediction", "Downloading result").
+- [x] Remove Google-specific imports (`google.genai` packages) and constants that only apply to Nano Banana (e.g., progress messages with "Nano Banana").
+- [x] Add `import replicate` and handle optional dependency messaging (warn if the library is missing with install instructions for `replicate`).
+- [x] Initialize a Replicate client via `replicate.Client(api_token=api_key)` inside `__init__`, storing the token for future requests.
+- [x] Extend the constructor to accept a `model_version` (full Replicate identifier like `owner/model:version_hash`) so we can route both generation and editing to the user-selected model.
+- [x] Update `generate_image`:
+  - [x] Build the Replicate input payload (at minimum `{"prompt": prompt}`) and attach reference images by opening each file and passing `io.BytesIO` handles when the selected model supports them.
+  - [x] Call the API using either `self.client.run(model_version, input=payload)` or `self.client.predictions.create` depending on synchronous needs; parse streaming/batch output to obtain binary image data (Replicate typically returns a list of URLs or binary data).
+  - [x] Download or decode the returned image(s); if URLs are provided, use `requests` (already vendored?) or `urllib.request` to fetch the image bytes before loading them into a `GdkPixbuf`.
+  - [x] Preserve reference image validation (`_validate_reference_image`) but generalize MIME/type checks if Replicate has different limits (retain 7MB/PNG-JPEG-WebP unless the chosen models demand changes).
+- [x] Update `edit_image` to send the current GIMP layer as an input image where the selected Replicate model supports image-to-image operations:
+  - [x] Export the current layer to PNG bytes (`integrator.export_gimp_image_to_bytes` already does this).
+  - [x] Feed that into the payload (`{"prompt": prompt, "image": BytesIO(...)}`) alongside optional reference images if accepted by the chosen model.
+- [x] Replace `_parse_image_response` logic with Replicate-specific parsing (their responses may be lists of URLs, base64 strings, or file handles); loop through outputs until a usable image byte sequence is found and convert to `GdkPixbuf` as before.
+- [x] Update progress callback messaging to remove "Nano Banana" branding and reflect Replicate steps (e.g., "Queueing Replicate job", "Waiting for prediction", "Downloading result").
 
 ## 3. Threading Layer Updates (`dialog_threads.py`)
-- [ ] Update imports to reference `ReplicateAPI` and thread worker instantiations to pass the selected `model_version` from the UI/settings.
-- [ ] Propagate model selection through `start_generate_thread`/`start_edit_thread` so that `_generate_image_worker` and `_edit_image_worker` call `ReplicateAPI(api_key, model_version)`.
-- [ ] Enhance progress handling to include waiting/streaming statuses specific to Replicate predictions (e.g., handle polling if using `predictions.create`).
-- [ ] Adjust error handling so that Replicate-specific errors (HTTP errors, `replicate.exceptions.ReplicateError`) are surfaced cleanly to the UI.
+- [x] Update imports to reference `ReplicateAPI` and thread worker instantiations to pass the selected `model_version` from the UI/settings.
+- [x] Propagate model selection through `start_generate_thread`/`start_edit_thread` so that `_generate_image_worker` and `_edit_image_worker` call `ReplicateAPI(api_key, model_version)`.
+- [x] Enhance progress handling to include waiting/streaming statuses specific to Replicate predictions (e.g., handle polling if using `predictions.create`).
+- [x] Adjust error handling so that Replicate-specific errors (HTTP errors, `replicate.exceptions.ReplicateError`) are surfaced cleanly to the UI.
 
 ## 4. UI Adjustments (`dialog_gtk.py`)
-- [ ] Replace all Google-/Gemini-branded text with Replicate terminology (section headers, placeholders, help text).
-- [ ] Update the API key help link to point to Replicate token instructions (https://replicate.com/account/api-tokens).
+- [x] Replace all Google-/Gemini-branded text with Replicate terminology (section headers, placeholders, help text).
+- [x] Update the API key help link to point to Replicate token instructions (https://replicate.com/account/api-tokens).
 - [ ] Insert a new "Model" selection row beneath the API key section:
   - [ ] Use `Gtk.ComboBoxText` populated from a shared constant list (e.g., defined in `dialog_gtk.py` or a new config module) that maps friendly labels to Replicate model version identifiers.
   - [ ] Provide a short descriptive label or tooltip for each model (e.g., "Flux Dev – photorealistic text-to-image").
@@ -44,9 +44,9 @@
 
 ## 5. Event Handling & State Management (`dialog_events.py`)
 - [ ] Load and store the selected model version alongside the API key when persisting settings.
-- [ ] Update validation messages to reference Replicate (e.g., "Please enter your Replicate API token").
+- [x] Update validation messages to reference Replicate (e.g., "Please enter your Replicate API token").
 - [ ] Initialize the model combo box selection from stored settings or default to a sensible option.
-- [ ] Pass the chosen model version into the thread launcher methods.
+- [x] Pass the chosen model version into the thread launcher methods.
 - [ ] If editing mode is chosen and the model lacks editing support, surface a warning immediately instead of dispatching a failing request.
 
 ## 6. Settings Persistence (`settings.py`)
@@ -54,13 +54,13 @@
 - [ ] Keep existing permissions logic; ensure new field respects cross-platform path handling.
 
 ## 7. Dialog Metadata (`dialog.py` & `dream-prompter.py`)
-- [ ] Update window titles, descriptions, and registration metadata to describe Replicate usage instead of Nano Banana.
+- [x] Update window titles, descriptions, and registration metadata to describe Replicate usage instead of Nano Banana.
 - [ ] Update plugin documentation strings (`procedure.set_documentation`, `PLUGIN_DESCRIPTION`) to reflect new capabilities and mention that users can pick from multiple Replicate models.
 
 ## 8. Documentation
 - [x] Rewrite `README.md` sections (features, prerequisites, installation, API key acquisition) to reference Replicate, including instructions to install the `replicate` Python package and to create tokens on replicate.com.
 - [x] Remove Google-specific setup instructions and replace screenshots/notes if necessary.
-- [ ] Update any other docs or comments referencing Gemini/Nano Banana.
+- [x] Update any other docs or comments referencing Gemini/Nano Banana.
 
 ## 9. Dependency Audit
 - [x] Ensure `google-genai` is no longer mentioned in installation or optional dependencies; add guidance for installing `replicate` (and any additional libraries needed for HTTP downloads like `requests` if used).
