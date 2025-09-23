@@ -19,11 +19,13 @@ FILE_PERMISSIONS = 0o600
 
 DEFAULT_MODE = "edit"
 DEFAULT_API_KEY_VISIBLE = False
+DEFAULT_MODEL_VERSION = "google/nano-banana"
 DEFAULT_SETTINGS: SettingsDict = {
     "api_key": "",
     "mode": DEFAULT_MODE,
     "prompt": "",
     "api_key_visible": DEFAULT_API_KEY_VISIBLE,
+    "model_version": DEFAULT_MODEL_VERSION,
 }
 
 
@@ -67,7 +69,13 @@ def load_settings() -> SettingsDict:
     return DEFAULT_SETTINGS.copy()
 
 
-def store_settings(api_key: str, mode: str, prompt: str, api_key_visible: bool) -> None:
+def store_settings(
+    api_key: str,
+    mode: str,
+    prompt: str,
+    api_key_visible: bool,
+    model_version: str,
+) -> None:
     """Store settings to config file"""
     if mode not in ("edit", "generate"):
         raise ValueError(f"Invalid mode: {mode}. Must be 'edit' or 'generate'")
@@ -78,6 +86,9 @@ def store_settings(api_key: str, mode: str, prompt: str, api_key_visible: bool) 
             "mode": mode,
             "prompt": prompt,
             "api_key_visible": api_key_visible,
+            "model_version": model_version.strip()
+            if isinstance(model_version, str)
+            else "",
         }
 
         config_file = get_config_file()
