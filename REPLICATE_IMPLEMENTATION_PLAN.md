@@ -48,7 +48,7 @@
 - [x] Pass the chosen model version into the thread launcher methods.
 
 ## 6. Settings Persistence (`settings.py`)
-- [ ] Extend stored JSON structure with a `model_version` field (defaulting to the preferred Replicate model) and migrate existing configs gracefully (handle missing key by injecting default when loading older files).
+- [x] Extend stored JSON structure with a `model_version` field (defaulting to the preferred Replicate model) and migrate existing configs gracefully (handle missing key by injecting default when loading older files).
 - [ ] Keep existing permissions logic; ensure new field respects cross-platform path handling.
 
 ## 7. Dialog Metadata (`dialog.py` & `dream-prompter.py`)
