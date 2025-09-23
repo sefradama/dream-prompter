@@ -58,6 +58,7 @@ class DreamPrompterUI:
         self.api_key_entry = None
         self.toggle_visibility_btn = None
         self.model_combo = None
+        self.selected_model_version = ""
         self.edit_mode_radio = None
         self.generate_mode_radio = None
         self.prompt_textview = None
@@ -133,6 +134,58 @@ class DreamPrompterUI:
             self.clear_files_btn.set_sensitive(enabled)
         if self.generate_btn:
             self.generate_btn.set_sensitive(enabled)
+
+    def set_selected_model_version(self, model_version):
+        """Store the selected model version and update the combo box."""
+
+        normalized = (model_version or "").strip()
+
+        if normalized and self._model_id_exists(normalized):
+            self.selected_model_version = normalized
+            if self.model_combo:
+                self.model_combo.set_active_id(normalized)
+            return True
+
+        default_id = self._get_default_model_id()
+        self.selected_model_version = default_id
+        if self.model_combo and default_id:
+            self.model_combo.set_active_id(default_id)
+        return False
+
+    def get_selected_model_version(self):
+        """Return the current model version selection."""
+
+        if self.model_combo:
+            active_id = self.model_combo.get_active_id()
+            if active_id:
+                self.selected_model_version = active_id
+                return active_id
+
+        return self.selected_model_version
+
+    def _get_default_model_id(self):
+        """Return the default model identifier from the options list."""
+
+        if REPLICATE_MODEL_OPTIONS:
+            return REPLICATE_MODEL_OPTIONS[0][0]
+        return ""
+
+    def _model_id_exists(self, model_id):
+        """Check if the provided model ID exists in the options list."""
+
+        for option_id, _label in REPLICATE_MODEL_OPTIONS:
+            if option_id == model_id:
+                return True
+        return False
+
+    def _on_model_combo_changed(self, combo):
+        """Keep the stored model version synchronized with the combo box."""
+
+        if not combo:
+            return
+
+        active_id = combo.get_active_id()
+        self.selected_model_version = active_id or ""
 
     def toggle_api_key_visibility(self, button):
         """Toggle API key visibility and update button icon"""
@@ -270,8 +323,12 @@ class DreamPrompterUI:
         for model_id, label in REPLICATE_MODEL_OPTIONS:
             self.model_combo.append(model_id, label)
 
-        if REPLICATE_MODEL_OPTIONS:
-            self.model_combo.set_active(0)
+        self.model_combo.connect("changed", self._on_model_combo_changed)
+
+        if self.selected_model_version:
+            self.set_selected_model_version(self.selected_model_version)
+        else:
+            self.set_selected_model_version(self._get_default_model_id())
 
         model_row.pack_start(self.model_combo, True, True, 0)
         section_box.pack_start(model_row, False, False, 0)

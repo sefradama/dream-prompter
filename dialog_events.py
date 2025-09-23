@@ -35,7 +35,10 @@ class DreamPrompterEventHandler:
 
         settings = load_settings()
         self._model_version: str = self._determine_initial_model_version(settings)
-        setattr(self.ui, "selected_model_version", self._model_version)
+        if hasattr(self.ui, "set_selected_model_version"):
+            self.ui.set_selected_model_version(self._model_version)
+        else:
+            setattr(self.ui, "selected_model_version", self._model_version)
         if self.ui.toggle_visibility_btn and self.ui.api_key_entry:
             is_visible = settings.get("api_key_visible", False)
             self.ui.toggle_visibility_btn.set_active(is_visible)
@@ -117,12 +120,12 @@ class DreamPrompterEventHandler:
     def get_selected_model_version(self) -> str:
         """Return the currently selected Replicate model version."""
 
-        combo = getattr(self.ui, "model_combo", None)
-        if combo is not None and hasattr(combo, "get_active_id"):
-            active_id = combo.get_active_id()
-            if active_id:
-                self._model_version = active_id
-                return active_id
+        if hasattr(self.ui, "get_selected_model_version"):
+            selected_version = self.ui.get_selected_model_version()
+            if isinstance(selected_version, str) and selected_version.strip():
+                normalized = selected_version.strip()
+                self._model_version = normalized
+                return normalized
 
         selected_attr = getattr(self.ui, "selected_model_version", "")
         if isinstance(selected_attr, str) and selected_attr.strip():
