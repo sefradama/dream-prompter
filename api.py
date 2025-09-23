@@ -34,11 +34,29 @@ try:
     from replicate.exceptions import ReplicateError
 
     REPLICATE_AVAILABLE = True
-except ImportError:
+except ImportError as import_error:
     replicate = None  # type: ignore[assignment]
     ReplicateError = RuntimeError  # type: ignore[assignment]
     REPLICATE_AVAILABLE = False
-    print("Warning: replicate not installed. Install with: pip install replicate")
+
+    print("\n" + "="*60)
+    print("⚠️  DREAM PROMPTER SETUP REQUIRED")
+    print("="*60)
+    print("The 'replicate' package is not installed.")
+    print("")
+    print("To fix this issue, run one of the following commands:")
+    print("")
+    print("  For system-wide installation:")
+    print("    pip install replicate")
+    print("")
+    print("  For user-specific installation:")
+    print("    pip install --user replicate")
+    print("")
+    print("  Or with specific Python version:")
+    print(f"    python -m pip install replicate")
+    print("")
+    print("After installation, restart GIMP and try again.")
+    print("="*60 + "\n")
 
 
 class ReplicateAPI:
@@ -281,10 +299,19 @@ class ReplicateAPI:
             with open(img_path, "rb") as img_file:
                 image_data = img_file.read()
 
+            # Step 1: MIME type validation
             mime_type, encoding = mimetypes.guess_type(img_path)
             if mime_type not in SUPPORTED_MIME_TYPES:
                 print(
                     f"Warning: Image {img_path} has unsupported MIME type {mime_type} with encoding {encoding}. Skipping."
+                )
+                return None, False
+
+            # Step 2: Content validation - attempt to load as actual image
+            # This prevents uploading files with fake extensions or malicious content
+            if not self._validate_image_content(image_data):
+                print(
+                    f"Warning: {img_path} is not a valid image file or contains corrupted data. Skipping."
                 )
                 return None, False
 
@@ -296,6 +323,40 @@ class ReplicateAPI:
         except Exception as e:
             print(f"Warning: Could not load reference image {img_path}: {e}")
             return None, False
+
+    def _validate_image_content(self, image_bytes: bytes) -> bool:
+        """Validate that provided bytes are actually a loadable image.
+
+        Args:
+            image_bytes: Raw image file data
+
+        Returns:
+            True if the bytes represent a valid image, False otherwise
+        """
+        if not image_bytes:
+            return False
+
+        try:
+            # Attempt to create a pixbuf from the data
+            loader = GdkPixbuf.PixbufLoader()
+            loader.write(image_bytes)
+            loader.close()
+
+            pixbuf = loader.get_pixbuf()
+            if pixbuf is None:
+                return False
+
+            # Verify basic image properties (must have dimensions)
+            width = pixbuf.get_width()
+            height = pixbuf.get_height()
+
+            if width <= 0 or height <= 0 or width > 65535 or height > 65535:
+                return False
+
+            return True
+
+        except Exception:
+            return False
 
     def _create_file_handle(self, image_bytes: bytes, name: str) -> io.BytesIO:
         """Wrap image bytes in a file-like buffer compatible with Replicate SDK."""
@@ -320,9 +381,24 @@ class ReplicateAPI:
 
             _, _, encoded = data.partition(",")
             candidate = encoded or data
+
+            # Security: Validate base64 input before decoding
             try:
-                return base64.b64decode(candidate)
-            except (binascii.Error, ValueError):
+                # Check for reasonable size limits (base64 is ~33% larger than binary)
+                # Limit to ~100MB of decoded data max
+                if len(candidate) > 134217728:  # ~100MB * 4/3
+                    print("Warning: Base64 input too large for safe decoding")
+                    return None
+
+                decoded_bytes = base64.b64decode(candidate)
+                # Final safety check on decoded size
+                if len(decoded_bytes) > 104857600:  # 100MB limit
+                    print("Warning: Decoded base64 data exceeds size limit")
+                    return None
+
+                return decoded_bytes
+            except (binascii.Error, ValueError, MemoryError) as e:
+                print(f"Warning: Base64 decode failed: {e}")
                 return None
 
         if hasattr(data, "read") and callable(data.read):
@@ -361,12 +437,57 @@ class ReplicateAPI:
 
         return None
 
-    def _download_image(self, url: str) -> Optional[bytes]:
-        """Download image bytes from a remote URL."""
+    def _download_image(self, url: str, max_size_bytes: int = 50 * 1024 * 1024) -> Optional[bytes]:
+        """Download image bytes from a remote URL with security validation.
+
+        Args:
+            url: The URL to download from
+            max_size_bytes: Maximum allowed download size (default 50MB)
+
+        Returns:
+            Image bytes if successful, None if failed or invalid
+        """
+        from urllib.parse import urlparse
+
+        # Security: Only allow downloads from trusted replicate domains
+        TRUSTED_DOMAINS = {"replicate.com", "replicate.ai", "api.replicate.com"}
 
         try:
-            with urlrequest.urlopen(url) as response:
-                return response.read()
-        except (urlerror.URLError, ValueError) as exc:
+            parsed = urlparse(url)
+            if not parsed.scheme or not parsed.scheme.lower() in ("http", "https"):
+                print(f"Warning: Invalid URL scheme: {url}")
+                return None
+
+            domain = parsed.netloc.lower()
+            # Allow main domain and subdomains of trusted domains
+            is_trusted = any(domain == trusted or domain.endswith("." + trusted)
+                           for trusted in TRUSTED_DOMAINS)
+
+            if not is_trusted:
+                print(f"Warning: Attempted download from untrusted domain: {domain}")
+                return None
+
+            # Use timeout to prevent hanging connections
+            with urlrequest.urlopen(url, timeout=30) as response:
+                # Check content type for security
+                content_type = response.headers.get('content-type', '').lower()
+                if not content_type.startswith('image/'):
+                    print(f"Warning: Non-image content-type: {content_type}")
+                    return None
+
+                # Stream download with size limit to prevent memory exhaustion
+                downloaded_data = b""
+                while True:
+                    chunk = response.read(8192)
+                    if not chunk:
+                        break
+                    downloaded_data += chunk
+                    if len(downloaded_data) > max_size_bytes:
+                        print(f"Warning: Download size exceeded limit ({max_size_bytes} bytes)")
+                        return None
+
+                return downloaded_data
+
+        except (urlerror.URLError, ValueError, OSError) as exc:
             print(f"Warning: Could not download image from {url}: {exc}")
             return None

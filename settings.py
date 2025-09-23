@@ -3,9 +3,11 @@
 
 """Settings management for Dream Prompter plugin."""
 
+import base64
 import json
 import os
 import platform
+from cryptography.fernet import Fernet, InvalidToken
 from typing import Any, Dict, Literal, Tuple, Union
 
 ModeKey = Literal["edit", "generate"]
@@ -25,6 +27,69 @@ DEFAULT_SETTINGS: SettingsDict = {
     "api_key_visible": DEFAULT_API_KEY_VISIBLE,
     "model_version": DEFAULT_MODEL_VERSION,
 }
+
+# Encryption key file for API key security
+ENCRYPTION_KEY_FILE = "dream-prompter-key"
+
+
+def _get_encryption_key() -> bytes:
+    """Get or create encryption key for API key storage."""
+    key_file = os.path.join(os.path.dirname(get_config_file()), ENCRYPTION_KEY_FILE)
+
+    try:
+        if os.path.exists(key_file):
+            with open(key_file, "rb") as f:
+                return f.read()
+        else:
+            # Generate new key
+            key = Fernet.generate_key()
+            with open(key_file, "wb") as f:
+                f.write(key)
+
+            if platform.system() != "Windows":
+                os.chmod(key_file, 0o600)
+
+            return key
+    except (OSError, PermissionError, IOError) as e:
+        print(f"Warning: Could not access encryption key: {e}")
+        # Fallback: generate a key but don't cache it
+        return Fernet.generate_key()
+
+
+def _encrypt_api_key(api_key: str) -> str:
+    """Encrypt API key for secure storage."""
+    if not api_key:
+        return ""
+
+    try:
+        key = _get_encryption_key()
+        fernet = Fernet(key)
+        encrypted = fernet.encrypt(api_key.encode())
+        return base64.b64encode(encrypted).decode()
+    except Exception as e:
+        print(f"Warning: Could not encrypt API key: {e}")
+        return api_key  # Fallback to plain text
+
+
+def _decrypt_api_key(encrypted_key: str) -> str:
+    """Decrypt API key from secure storage."""
+    if not encrypted_key:
+        return ""
+
+    try:
+        # Check if it looks like encrypted (base64) data
+        if not encrypted_key.replace('+', '').replace('/', '').replace('=', '').isalnum():
+            # Not encrypted format, return as-is for backward compatibility
+            return encrypted_key
+
+        key = _get_encryption_key()
+        fernet = Fernet(key)
+        decoded = base64.b64decode(encrypted_key)
+        decrypted = fernet.decrypt(decoded)
+        return decrypted.decode()
+    except (InvalidToken, ValueError, UnicodeDecodeError, Exception) as e:
+        print(f"Warning: Could not decrypt API key, assuming plain text: {e}")
+        return encrypted_key  # Fallback to plain text for backward compatibility
 
 
 def _sanitize_string(value: Any, default: str = "") -> Tuple[str, bool]:
@@ -85,8 +150,11 @@ def _normalize_settings(data: Dict[str, Any]) -> Tuple[SettingsDict, bool]:
     normalized: SettingsDict = DEFAULT_SETTINGS.copy()
     changed = False
 
-    api_key, api_key_changed = _sanitize_string(data.get("api_key"), "")
+    encrypted_api_key = data.get("api_key", "")
+    api_key_plain = _decrypt_api_key(str(encrypted_api_key))
+    api_key, api_key_changed = _sanitize_string(api_key_plain, "")
     normalized["api_key"] = api_key
+    # Don't mark as changed just for decryption - it's expected
     changed = changed or api_key_changed or ("api_key" not in data)
 
     mode, mode_changed = _sanitize_mode(data.get("mode"))
@@ -117,8 +185,13 @@ def _write_settings(settings: SettingsDict) -> None:
 
     config_file = get_config_file()
 
+    # Encrypt sensitive data before writing
+    settings_to_write = settings.copy()
+    if "api_key" in settings_to_write:
+        settings_to_write["api_key"] = _encrypt_api_key(str(settings_to_write["api_key"]))
+
     with open(config_file, "w", encoding="utf-8") as f:
-        json.dump(settings, f, indent=2)
+        json.dump(settings_to_write, f, indent=2)
 
     if platform.system() != "Windows":
         os.chmod(config_file, FILE_PERMISSIONS)

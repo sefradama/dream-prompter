@@ -5,3 +5,15 @@ reportMissingModuleSource = false
 
 [tool.ruff]
 exclude = ["stubs"]
+
+[project]
+name = "dream-prompter"
+version = "1.0.3"
+description = "AI-powered image creation/editing with selectable Replicate models"
+authors = [
+    {name = "Josh Ellithorpe"}
+]
+dependencies = [
+    "replicate",
+    "cryptography"
+]
