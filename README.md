@@ -1,6 +1,6 @@
 # Dream Prompter - GIMP Plugin
 
-Dream Prompter brings Google's Nano Banana (Gemini 2.5 Flash Image Preview) AI capabilities directly into GIMP for intelligent image generation and editing.
+Dream Prompter brings Replicate-hosted image generation models directly into GIMP for intelligent image creation and editing. Switch between Replicate model versions to explore different aesthetics without leaving your editing workflow.
 
 ![Dream Prompter](screenshots/dream-prompter.png)
 
@@ -21,12 +21,13 @@ Dream Prompter brings Google's Nano Banana (Gemini 2.5 Flash Image Preview) AI c
 
 - **GIMP 3.0.x**
 - **Python 3.8+**
-- **Google Gemini API key** (paid account required)
+- **Replicate account** with an active API token ([replicate.com/account/api-tokens](https://replicate.com/account/api-tokens))
+- **`replicate` Python package** available to GIMP's embedded interpreter
 
 Install the required Python library:
 
 ```bash
-pip install google-genai
+pip install replicate
 ```
 
 ### Quick Install
@@ -106,29 +107,29 @@ yay -S dream-prompter
 ```bash
 git clone https://github.com/zquestz/dream-prompter.git
 cd dream-prompter
-pip install google-genai
+pip install replicate
 python3 scripts/build-translations.py # optional, defaults to English
 ln -s $(pwd) ~/.config/GIMP/3.0/plug-ins/dream-prompter
 ```
 
 ### Python Dependencies Note
 
-**Important**: Use the same Python that GIMP uses. If `pip install google-genai` doesn't work:
+**Important**: Use the same Python that GIMP uses. If `pip install replicate` doesn't work:
 
 ```bash
 # System-wide installation
-sudo pip install google-genai
+sudo pip install replicate
 
 # User installation (recommended)
-pip install --user google-genai
+pip install --user replicate
 
 # Ensure Python 3
-pip3 install google-genai
+pip3 install replicate
 ```
 
 #### macOS Instructions
 
-If you get the **"google-genai not installed"** error on macOS:
+If you get the **"replicate not installed"** error on macOS:
 
 1. **Locate GIMP's Python** by opening the Python Console: `Filters → Development → Python-Fu`
 2. **Run this command** in the console:
@@ -143,7 +144,7 @@ If you get the **"google-genai not installed"** error on macOS:
    /Applications/GIMP.app/Contents/MacOS/python3
    ```
 
-3. **Install google-genai using GIMP's Python** from Terminal:
+3. **Install replicate using GIMP's Python** from Terminal:
 
    ```bash
    # Change to GIMP's Python directory
@@ -152,24 +153,24 @@ If you get the **"google-genai not installed"** error on macOS:
    # Ensure pip is installed
    ./python3 -m ensurepip
 
-   # Install google-genai
-   ./python3 -m pip install google-genai
+   # Install replicate
+   ./python3 -m pip install replicate
    ```
 
 ## Getting Your API Key
 
-**Important**: The Gemini 2.5 Flash Image Preview model (Nano Banana) requires a **paid Google Cloud account** with billing enabled. Free tier accounts cannot access the image generation capabilities.
+**Important**: Replicate bills usage per prediction. Most featured models require paid credits, so ensure your Replicate account has an active billing method or sufficient prepaid credits before running jobs.
 
-1. **Visit [Google AI Studio](https://aistudio.google.com/)**
-2. **Create or select a project**
-3. **Enable billing** for your Google Cloud account
-4. **Generate an API key**
-5. **Keep your key secure and monitor usage/costs**
+1. **Visit [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)**
+2. **Sign in or create a Replicate account**
+3. **Click "Create token"** and optionally label it for Dream Prompter
+4. **Copy the generated token** into the plugin or set it as the `REPLICATE_API_TOKEN` environment variable
+5. **Monitor usage and spend** from the Replicate dashboard
 
 ### API Specifications
 
-- **Model**: `gemini-2.5-flash-image-preview` (Nano Banana)
-- **Billing**: **Paid account required** - image generation is not available on free tier
+- **Model version format**: `owner/model:version_hash` (examples: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`)
+- **Billing**: Predictions deduct credits from your Replicate account
 - **Image Limits**:
   - Generation mode: Up to 3 reference images
   - Edit mode: Up to 2 reference images (current image + 2 = 3 total)
@@ -178,9 +179,9 @@ If you get the **"google-genai not installed"** error on macOS:
 
 ### Cost Considerations
 
-- Each image generation/edit counts toward your API usage
-- Monitor your usage at [Google AI Studio](https://aistudio.google.com/) to avoid unexpected charges
-- Consider setting up billing alerts in Google Cloud Console
+- Each Replicate prediction (generation or edit) consumes credits based on the selected model
+- Monitor usage, invoices, and credit balance at [replicate.com/account/billing](https://replicate.com/account/billing)
+- Set spending alerts or auto top-ups in Replicate to avoid interrupted workflows
 
 ## Usage
 
@@ -261,7 +262,7 @@ The plugin is organized into focused modules:
 - **`dialog_gtk.py`** - GTK user interface components
 - **`dialog_events.py`** - Event handling and user interactions
 - **`dialog_threads.py`** - Background processing and threading
-- **`api.py`** - Google Gemini API integration
+- **`api.py`** - Replicate API integration
 - **`integrator.py`** - GIMP-specific operations
 - **`settings.py`** - Configuration persistence
 - **`i18n.py`** - Internationalization support
@@ -270,9 +271,9 @@ The plugin is organized into focused modules:
 
 ### Common Issues
 
-**"google-genai not installed" warning**
+**"`replicate` package not installed" warning**
 
-- Install with: `pip install google-genai`
+- Install with: `pip install replicate`
 - Ensure you're using GIMP's Python environment
 
 **Plugin doesn't appear in menu**
@@ -283,10 +284,9 @@ The plugin is organized into focused modules:
 
 **API errors**
 
-- Verify your API key is correct
-- **Ensure billing is enabled** - free accounts cannot access image generation
-- Check your quota at [Google AI Studio](https://aistudio.google.com/)
-- Monitor costs to avoid unexpected charges
+- Verify your Replicate API token is correct and not expired
+- Confirm the selected model version exists and your account has sufficient credits
+- Check [status.replicate.com](https://status.replicate.com/) for any ongoing incidents
 
 **Image processing issues**
 
@@ -340,4 +340,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Credits
 
-Built with Google's Gemini 2.5 Flash Image Preview (Nano Banana) API.
+Powered by Replicate's hosted image generation models.

@@ -11,18 +11,19 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def compile_translations() -> bool:
     """Compile all .po files to .mo files"""
 
     plugin_dir = Path(__file__).parent.parent
     os.chdir(plugin_dir)
 
-    locale_dir = Path('locale')
+    locale_dir = Path("locale")
     if not locale_dir.exists():
         print("No locale directory found!")
         return False
 
-    po_files = [f for f in locale_dir.iterdir() if f.is_file() and f.suffix == '.po']
+    po_files = [f for f in locale_dir.iterdir() if f.is_file() and f.suffix == ".po"]
 
     if not po_files:
         print("No .po files found in locale/ directory")
@@ -33,14 +34,14 @@ def compile_translations() -> bool:
     for po_file in sorted(po_files):
         lang_code = po_file.stem
 
-        target_dir = locale_dir / lang_code / 'LC_MESSAGES'
+        target_dir = locale_dir / lang_code / "LC_MESSAGES"
         target_dir.mkdir(parents=True, exist_ok=True)
-        mo_file = target_dir / 'dream-prompter.mo'
+        mo_file = target_dir / "dream-prompter.mo"
 
         print(f"Compiling {po_file} -> {mo_file}")
 
         try:
-            cmd = ['msgfmt', '-o', str(mo_file), str(po_file)]
+            cmd = ["msgfmt", "-o", str(mo_file), str(po_file)]
             _ = subprocess.run(cmd, check=True, capture_output=True)
             success_count += 1
             print(f"✓ Successfully compiled {lang_code}")
@@ -52,13 +53,16 @@ def compile_translations() -> bool:
             print("✗ msgfmt not found. Please install gettext tools.")
             return False
 
-    print(f"\nCompilation complete: {success_count}/{len(po_files)} files compiled successfully")
+    print(
+        f"\nCompilation complete: {success_count}/{len(po_files)} files compiled successfully"
+    )
     return success_count > 0
+
 
 def create_template_files() -> bool:
     """Create template .po files from .pot for manual language setup"""
 
-    pot_file = Path('locale/dream-prompter.pot')
+    pot_file = Path("locale/dream-prompter.pot")
     if not pot_file.exists():
         print("No template found: locale/dream-prompter.pot")
         print("Run 'python3 scripts/update-pot.py' first")
@@ -70,8 +74,9 @@ def create_template_files() -> bool:
     print("  python3 scripts/build-translations.py")
     return True
 
-if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == '--init':
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--init":
         _ = create_template_files()
     else:
         if compile_translations():
