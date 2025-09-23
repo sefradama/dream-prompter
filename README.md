@@ -1,19 +1,8 @@
 # Dream Prompter - GIMP Plugin
 
-Dream Prompter brings Replicate-hosted image generation models directly into GIMP for intelligent image creation and editing. Switch between Replicate model versions to explore different aesthetics without leaving your editing workflow.
+**This is a WIP fork of [the original Dream Prompter GIMP plugin by zquests](https://github.com/zquestz/dream-prompter).**
 
-![Dream Prompter](screenshots/dream-prompter.png)
-
-## Features
-
-- 🎨 **AI Image Generation**: Create new images from text descriptions
-- ✨ **AI Image Editing**: Transform existing images with natural language prompts
-- 🖼️ **Reference Images**: Use up to 3 reference images for generation, 2 for editing
-- 🔄 **Smart Layer Management**: Automatically creates properly named layers
-- 🎯 **Dual Operation Modes**: Seamlessly switch between editing and generation
-- 🌍 **Multi-Language Support**: Setup to support multiple languages via i18n
-- 🔒 **Safe File Handling**: Validates image formats and file sizes
-- 🏗️ **Native GIMP Integration**: Works seamlessly within your GIMP workflow
+This plugin brings Replicate-hosted image generation models directly into GIMP for intelligent image creation and editing. Switch between Replicate model versions to explore different aesthetics without leaving your editing workflow.
 
 ## Installation
 
@@ -32,7 +21,7 @@ pip install replicate
 
 ### Quick Install
 
-1. **Download the latest release** from [GitHub Releases](https://github.com/zquestz/dream-prompter/releases)
+1. **Download the latest release**
 
 2. **Extract the release**
 
@@ -63,14 +52,6 @@ pip install replicate
 5. **Restart GIMP**
 
 **Building translations (optional):** If you need languages other than English, run `python3 scripts/build-translations.py` in the plugin directory after installation.
-
-### Arch Linux Installation
-
-To install Dream Prompter on Arch Linux, you can install it from the AUR.
-
-```bash
-yay -S dream-prompter
-```
 
 ### Advanced Installation
 
@@ -171,10 +152,6 @@ If you get the **"replicate not installed"** error on macOS:
 
 - **Model version format**: `owner/model:version_hash` (examples: `google/nano-banana`, `bytedance/seedream-4`, `qwen/qwen-image-edit`)
 - **Billing**: Predictions deduct credits from your Replicate account
-- **Image Limits**:
-  - Generation mode: Up to 3 reference images
-  - Edit mode: Up to 2 reference images (current image + 2 = 3 total)
-- **File Size**: Maximum 7MB per image
 - **Formats**: PNG, JPEG, WebP only
 
 ### Cost Considerations
@@ -197,62 +174,6 @@ If you get the **"replicate not installed"** error on macOS:
 6. **Add reference images** (optional): Click "Select Images..." to add references
 7. **Generate**: Click the generate button and watch the progress
 8. **Result**: New layer appears with a descriptive name
-
-### Example Prompts
-
-**For Generation:**
-
-- "A majestic dragon flying over snow-capped mountains at sunset"
-- "Portrait of a woman in Victorian dress, oil painting style"
-- "Cyberpunk cityscape with neon reflections on wet streets"
-
-**For Editing:**
-
-- "Change the background to a peaceful forest clearing"
-- "Make this person wear a red Victorian dress"
-- "Transform this into a watercolor painting style"
-- "Add falling snow to this winter scene"
-
-### Tips for Best Results
-
-- **Be specific**: "Red sports car" vs "bright red Ferrari 488 GTB"
-- **Include style**: "photorealistic", "oil painting", "digital art"
-- **Describe lighting**: "golden hour", "dramatic shadows", "soft natural light"
-- **Use reference images** to guide style and composition
-- **Keep files under 7MB** for reference images
-
-## Language Support
-
-### Available Languages
-
-Dream Prompter is fully translated and available in:
-
-- **🇺🇸 English** (default)
-- **🇪🇸 Spanish** (complete)
-- **🇫🇷 French** (complete)
-- **🇵🇹 Portuguese** (complete)
-- **🇷🇺 Russian** (complete)
-- **🇯🇵 Japanese** (complete)
-- **🇮🇳 Hindi** (complete)
-- **🇧🇩 Bengali** (complete)
-- **🇨🇳 Chinese (Simplified)** (complete)
-- **🇹🇼 Chinese (Traditional)** (complete)
-- **🇰🇷 Korean** (complete)
-
-The plugin automatically detects your system language and uses the appropriate translation. If your language isn't available, it defaults to English.
-
-### For Developers
-
-```bash
-# Extract new translatable strings
-python3 scripts/update-pot.py
-
-# Update existing translations
-python3 scripts/update-translations.py
-
-# Build compiled translations
-python3 scripts/build-translations.py
-```
 
 ## Architecture
 
@@ -288,56 +209,6 @@ The plugin is organized into focused modules:
 - Confirm the selected model version exists and your account has sufficient credits
 - Check [status.replicate.com](https://status.replicate.com/) for any ongoing incidents
 
-**Image processing issues**
-
-- Reference images must be under 7MB
-- Only PNG, JPEG, WebP formats supported
-- Maximum 3 images for generation, 2 for editing
-
-**Interface problems**
-
-- Check GIMP's Error Console: `Windows → Dockable Dialogs → Error Console`
-- Ensure translations are built: `python3 scripts/build-translations.py`
-- Report UI issues with screenshots
-
-### Getting Help
-
-1. **Check the Error Console** in GIMP for specific error messages
-2. **Verify all requirements** are installed correctly
-3. **Test with simple prompts** first
-4. **Check file permissions** on the plugin directory
-5. **Review API quotas** if getting timeout errors
-
-## Contributing
-
-### For Translators
-
-We welcome translations! Here's how to contribute:
-
-1. **Copy the template**: `cp locale/dream-prompter.pot locale/[YOUR_LANG].po`
-2. **Translate the strings** using Poedit, Lokalize, or any text editor
-3. **Test your translation**: Build with `python3 scripts/build-translations.py`
-4. **Submit a pull request** with your `.po` file
-
-**Translation Guidelines:**
-
-- Keep UI text concise but clear
-- Use GIMP's existing terminology for your language
-- Preserve HTML tags and placeholders like `{count}`, `{url}`
-- Test that text fits in the interface
-
-### For Developers
-
-1. **Fork the repository**
-2. **Create a feature branch**
-3. **Follow the existing code style**
-4. **Update translations** if adding new strings
-5. **Submit a pull request**
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Credits
-
-Powered by Replicate's hosted image generation models.
