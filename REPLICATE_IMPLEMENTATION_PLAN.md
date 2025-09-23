@@ -39,7 +39,6 @@
 - [x] Insert a new "Model" selection row beneath the API key section:
   - [x] Use `Gtk.ComboBoxText` populated from a shared constant list (e.g., defined in `dialog_gtk.py` or a new config module) that maps friendly labels to Replicate model version identifiers.
   - [x] Provide a short descriptive label or tooltip for each model (e.g., "Flux Dev – photorealistic text-to-image").
-- [ ] Update prompts/examples/help messages if the model capabilities change (for example, mention diffusion vs. generative fill features).
 - [ ] Ensure new widgets are exposed via `DreamPrompterUI` attributes so the event handler can read/write the selected model.
 
 ## 5. Event Handling & State Management (`dialog_events.py`)
@@ -47,7 +46,6 @@
 - [x] Update validation messages to reference Replicate (e.g., "Please enter your Replicate API token").
 - [ ] Initialize the model combo box selection from stored settings or default to a sensible option.
 - [x] Pass the chosen model version into the thread launcher methods.
-- [ ] If editing mode is chosen and the model lacks editing support, surface a warning immediately instead of dispatching a failing request.
 
 ## 6. Settings Persistence (`settings.py`)
 - [ ] Extend stored JSON structure with a `model_version` field (defaulting to the preferred Replicate model) and migrate existing configs gracefully (handle missing key by injecting default when loading older files).
@@ -64,7 +62,6 @@
 
 ## 9. Dependency Audit
 - [x] Ensure `google-genai` is no longer mentioned in installation or optional dependencies; add guidance for installing `replicate` (and any additional libraries needed for HTTP downloads like `requests` if used).
-- [ ] If new third-party packages are introduced (e.g., `requests`), document them in README and verify they are compatible with GIMP's Python environment.
 
 ## 10. QA & Verification
 - [ ] Manual smoke test generation mode with at least one supported Replicate model to confirm predictions complete and layers are created.
