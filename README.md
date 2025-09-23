@@ -1,6 +1,6 @@
 # Dream Prompter - GIMP Plugin
 
-**This is a WIP fork of [the original Dream Prompter GIMP plugin by zquests](https://github.com/zquestz/dream-prompter).**
+**This is a WIP fork of [the original Dream Prompter GIMP plugin by zquestz](https://github.com/zquestz/dream-prompter).**
 
 This plugin brings Replicate-hosted image generation models directly into GIMP for intelligent image creation and editing. Switch between Replicate model versions to explore different aesthetics without leaving your editing workflow.
 
@@ -25,23 +25,14 @@ pip install replicate
 
 2. **Extract the release**
 
-   This will create a folder named `dream-prompter-{version}` (e.g., `dream-prompter-1.0.3`)
+   This will create a folder named `dream-prompter`
 
-3. **Move to your GIMP plugins folder with the correct name:**
+3. **Move to your GIMP plugins folder:**
 
-   Rename and move the extracted folder to exactly `dream-prompter` in your GIMP plugins directory:
+   Move the extracted folder to your GIMP plugins directory:
    - **Linux**: `~/.config/GIMP/3.0/plug-ins/dream-prompter/`
    - **Windows**: `%APPDATA%\GIMP\3.0\plug-ins\dream-prompter\`
    - **macOS**: `~/Library/Application Support/GIMP/3.0/plug-ins/dream-prompter/`
-
-   Example for Linux:
-
-   ```bash
-   # Extract creates dream-prompter-1.0.3/
-   unzip dream-prompter-1.0.3.zip
-   # Move to correct location with correct name
-   mv dream-prompter-1.0.3 ~/.config/GIMP/3.0/plug-ins/dream-prompter
-   ```
 
 4. **Make executable** (Linux/macOS only):
 
