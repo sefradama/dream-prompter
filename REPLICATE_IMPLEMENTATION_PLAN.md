@@ -42,7 +42,7 @@
 - [x] Ensure new widgets are exposed via `DreamPrompterUI` attributes so the event handler can read/write the selected model.
 
 ## 5. Event Handling & State Management (`dialog_events.py`)
-- [ ] Load and store the selected model version alongside the API key when persisting settings.
+- [x] Load and store the selected model version alongside the API key when persisting settings.
 - [x] Update validation messages to reference Replicate (e.g., "Please enter your Replicate API token").
 - [ ] Initialize the model combo box selection from stored settings or default to a sensible option.
 - [x] Pass the chosen model version into the thread launcher methods.

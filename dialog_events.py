@@ -169,7 +169,13 @@ class DreamPrompterEventHandler:
         api_key_visible = self.dialog.get_api_key_visible()
         model_version = self.get_selected_model_version()
 
-        store_settings(api_key, mode, prompt_text, api_key_visible)
+        store_settings(
+            api_key,
+            mode,
+            prompt_text,
+            api_key_visible,
+            model_version,
+        )
 
         if self.ui.status_label:
             self.ui.status_label.set_text(_("Initializing Replicate request..."))
