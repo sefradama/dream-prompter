@@ -39,7 +39,7 @@
 - [x] Insert a new "Model" selection row beneath the API key section:
   - [x] Use `Gtk.ComboBoxText` populated from a shared constant list (e.g., defined in `dialog_gtk.py` or a new config module) that maps friendly labels to Replicate model version identifiers.
   - [x] Provide a short descriptive label or tooltip for each model (e.g., "Flux Dev – photorealistic text-to-image").
-- [ ] Ensure new widgets are exposed via `DreamPrompterUI` attributes so the event handler can read/write the selected model.
+- [x] Ensure new widgets are exposed via `DreamPrompterUI` attributes so the event handler can read/write the selected model.
 
 ## 5. Event Handling & State Management (`dialog_events.py`)
 - [ ] Load and store the selected model version alongside the API key when persisting settings.
