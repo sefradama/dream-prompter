@@ -16,6 +16,38 @@ from gi.repository import Gtk, Pango  # noqa: E402
 from i18n import _  # noqa: E402
 
 
+REPLICATE_MODEL_OPTIONS = [
+    (
+        "google/nano-banana",
+        _(
+            "Nano Banana – Conversational image generation and editing with multi-image fusion support."
+        ),
+    ),
+    (
+        "bytedance/seedream-4",
+        _(
+            "SeeDream 4 – High-resolution text-to-image generation with optional reference guidance."
+        ),
+    ),
+    (
+        "qwen/qwen-image-edit",
+        _(
+            "Qwen Image Edit – Natural language guided edits for precise scene adjustments."
+        ),
+    ),
+    (
+        "jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a",
+        _(
+            "SwinIR – Upscaling, denoising, and artifact reduction for real-world photographs."
+        ),
+    ),
+    (
+        "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+        _("GFPGAN – Restore facial details in portraits and vintage photos."),
+    ),
+]
+
+
 class DreamPrompterUI:
     """Handles all GTK UI creation and layout"""
 
@@ -25,6 +57,7 @@ class DreamPrompterUI:
 
         self.api_key_entry = None
         self.toggle_visibility_btn = None
+        self.model_combo = None
         self.edit_mode_radio = None
         self.generate_mode_radio = None
         self.prompt_textview = None
@@ -86,6 +119,8 @@ class DreamPrompterUI:
             self.api_key_entry.set_sensitive(enabled)
         if self.toggle_visibility_btn:
             self.toggle_visibility_btn.set_sensitive(enabled)
+        if self.model_combo:
+            self.model_combo.set_sensitive(enabled)
         if self.edit_mode_radio:
             self.edit_mode_radio.set_sensitive(enabled)
         if self.generate_mode_radio:
@@ -218,6 +253,28 @@ class DreamPrompterUI:
         help_label.set_halign(Gtk.Align.START)
         help_label.set_line_wrap(True)
         section_box.pack_start(help_label, False, False, 0)
+
+        model_title = Gtk.Label()
+        model_title.set_markup(f"<b>{_('Model')}</b>")
+        model_title.set_halign(Gtk.Align.START)
+        section_box.pack_start(model_title, False, False, 0)
+
+        model_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+
+        self.model_combo = Gtk.ComboBoxText()
+        self.model_combo.set_hexpand(True)
+        self.model_combo.set_tooltip_text(
+            _("Choose which Replicate model to use for generation and editing.")
+        )
+
+        for model_id, label in REPLICATE_MODEL_OPTIONS:
+            self.model_combo.append(model_id, label)
+
+        if REPLICATE_MODEL_OPTIONS:
+            self.model_combo.set_active(0)
+
+        model_row.pack_start(self.model_combo, True, True, 0)
+        section_box.pack_start(model_row, False, False, 0)
 
         return section_box
 

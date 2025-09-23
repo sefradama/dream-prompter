@@ -36,9 +36,9 @@
 ## 4. UI Adjustments (`dialog_gtk.py`)
 - [x] Replace all Google-/Gemini-branded text with Replicate terminology (section headers, placeholders, help text).
 - [x] Update the API key help link to point to Replicate token instructions (https://replicate.com/account/api-tokens).
-- [ ] Insert a new "Model" selection row beneath the API key section:
-  - [ ] Use `Gtk.ComboBoxText` populated from a shared constant list (e.g., defined in `dialog_gtk.py` or a new config module) that maps friendly labels to Replicate model version identifiers.
-  - [ ] Provide a short descriptive label or tooltip for each model (e.g., "Flux Dev – photorealistic text-to-image").
+- [x] Insert a new "Model" selection row beneath the API key section:
+  - [x] Use `Gtk.ComboBoxText` populated from a shared constant list (e.g., defined in `dialog_gtk.py` or a new config module) that maps friendly labels to Replicate model version identifiers.
+  - [x] Provide a short descriptive label or tooltip for each model (e.g., "Flux Dev – photorealistic text-to-image").
 - [ ] Update prompts/examples/help messages if the model capabilities change (for example, mention diffusion vs. generative fill features).
 - [ ] Ensure new widgets are exposed via `DreamPrompterUI` attributes so the event handler can read/write the selected model.
 
