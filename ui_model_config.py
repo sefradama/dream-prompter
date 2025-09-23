@@ -194,15 +194,15 @@ class ModelConfigUI:
         model_row.pack_start(self.model_combo, True, True, 0)
         section_box.pack_start(model_row, False, False, 0)
 
-        # Model parameters section
-        params_title = Gtk.Label()
-        params_title.set_markup(f"<b>{_('Model Parameters')}</b>")
-        params_title.set_halign(Gtk.Align.START)
-        section_box.pack_start(params_title, False, False, 8)
+        # Model parameters section (collapsible)
+        params_expander = Gtk.Expander.new(_('Model Parameters'))
+        params_expander.set_expanded(True)
+        params_expander.set_margin_top(8)
+        section_box.pack_start(params_expander, False, False, 0)
 
         self.model_params_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self._update_model_parameters()
-        section_box.pack_start(self.model_params_box, False, False, 0)
+        params_expander.add(self.model_params_box)
 
         return section_box
 
@@ -748,26 +748,26 @@ class ModelConfigUI:
 
         # For SeeDream 4 size combo (default "2K" = non-custom: aspect_ratio visible, custom_size hidden)
         if self.size_combo:
-            if self.aspect_ratio_row:
+            if hasattr(self, "aspect_ratio_row") and self.aspect_ratio_row:
                 self.aspect_ratio_row.set_visible(True)
-            if self.custom_size_row:
+            if hasattr(self, "custom_size_row") and self.custom_size_row:
                 self.custom_size_row.set_visible(False)
 
         # For SeeDream 4 sequential generation (default "disabled": max_images hidden)
         if self.sequential_gen_combo:
-            if self.max_images_row:
+            if hasattr(self, "max_images_row") and self.max_images_row:
                 self.max_images_row.set_visible(False)
 
         # For Qwen output format (default "png": quality hidden)
         if self.output_format_combo:
-            if self.quality_row:
+            if hasattr(self, "quality_row") and self.quality_row:
                 self.quality_row.set_visible(False)
 
         # For SwinIR task type (default "Real-World Image Super-Resolution-Large": noise/jpeg hidden)
         if self.task_type_combo:
-            if self.noise_row:
+            if hasattr(self, "noise_row") and self.noise_row:
                 self.noise_row.set_visible(False)
-            if self.jpeg_row:
+            if hasattr(self, "jpeg_row") and self.jpeg_row:
                 self.jpeg_row.set_visible(False)
 
     def _model_id_exists(self, model_id):
