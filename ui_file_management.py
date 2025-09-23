@@ -13,6 +13,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk, Pango  # noqa: E402
+
 from i18n import _  # noqa: E402
 
 
@@ -41,7 +42,7 @@ class FileManagementUI:
         self.file_chooser_btn = Gtk.Button()
         self.file_chooser_btn.set_label(_("Select Images..."))
         self.file_chooser_btn.set_image(
-            Gtk.Image.new_from_icon_name("document-open-symbolic", Gtk.IconSize.BUTTON)
+            Gtk.Image.new_from_icon_name("document-open-symbolic", Gtk.IconSize.BUTTON),
         )
         files_container.pack_start(self.file_chooser_btn, False, False, 0)
 
@@ -53,7 +54,7 @@ class FileManagementUI:
 
         self.clear_files_btn = Gtk.Button()
         self.clear_files_btn.set_image(
-            Gtk.Image.new_from_icon_name("edit-clear-symbolic", Gtk.IconSize.BUTTON)
+            Gtk.Image.new_from_icon_name("edit-clear-symbolic", Gtk.IconSize.BUTTON),
         )
         self.clear_files_btn.set_tooltip_text(_("Clear selected files"))
         self.clear_files_btn.set_sensitive(False)
@@ -146,7 +147,7 @@ class FileManagementUI:
         file_box.set_margin_end(6)
 
         icon = Gtk.Image.new_from_icon_name(
-            "image-x-generic-symbolic", Gtk.IconSize.SMALL_TOOLBAR
+            "image-x-generic-symbolic", Gtk.IconSize.SMALL_TOOLBAR,
         )
         file_box.pack_start(icon, False, False, 0)
 
@@ -166,8 +167,8 @@ class FileManagementUI:
         remove_btn = Gtk.Button()
         remove_btn.set_image(
             Gtk.Image.new_from_icon_name(
-                "edit-delete-symbolic", Gtk.IconSize.SMALL_TOOLBAR
-            )
+                "edit-delete-symbolic", Gtk.IconSize.SMALL_TOOLBAR,
+            ),
         )
         remove_btn.set_relief(Gtk.ReliefStyle.NONE)
 
@@ -191,7 +192,7 @@ class FileManagementUI:
             size_mb = file_size / (1024 * 1024)
             if size_mb > 7:
                 filename += " " + _("⚠️ ({size:.1f} MB - Max Size Exceeded)").format(
-                    size=size_mb
+                    size=size_mb,
                 )
             elif size_mb > 1:
                 filename += " " + _("({size:.1f} MB)").format(size=size_mb)

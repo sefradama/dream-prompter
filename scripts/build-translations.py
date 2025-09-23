@@ -54,7 +54,7 @@ def compile_translations() -> bool:
             return False
 
     print(
-        f"\nCompilation complete: {success_count}/{len(po_files)} files compiled successfully"
+        f"\nCompilation complete: {success_count}/{len(po_files)} files compiled successfully",
     )
     return success_count > 0
 

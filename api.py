@@ -72,7 +72,7 @@ class ReplicateAPI:
 
         if not REPLICATE_AVAILABLE:
             raise ImportError(
-                _("Replicate API not available. Please install the replicate package.")
+                _("Replicate API not available. Please install the replicate package."),
             )
 
         resolved_key = (
@@ -83,8 +83,8 @@ class ReplicateAPI:
         if not resolved_key:
             raise ValueError(
                 _(
-                    "Replicate API token not provided. Set the field or export {env_var}."
-                ).format(env_var=ENV_TOKEN_VAR)
+                    "Replicate API token not provided. Set the field or export {env_var}.",
+                ).format(env_var=ENV_TOKEN_VAR),
             )
 
         self.api_key = resolved_key
@@ -126,7 +126,7 @@ class ReplicateAPI:
             return None, _("No GIMP image provided for editing")
 
         if progress_callback and not progress_callback(
-            _("Preparing current image for Replicate..."), PROGRESS_PREPARE
+            _("Preparing current image for Replicate..."), PROGRESS_PREPARE,
         ):
             return None, _("Operation cancelled")
 
@@ -136,22 +136,22 @@ class ReplicateAPI:
                 return None, _("Failed to export current image")
 
             if progress_callback and not progress_callback(
-                _("Building Replicate edit request..."), PROGRESS_UPLOAD
+                _("Building Replicate edit request..."), PROGRESS_UPLOAD,
             ):
                 return None, _("Operation cancelled")
 
             payload: Dict[str, Any] = {
                 "prompt": prompt.strip(),
                 "image": self._create_file_handle(
-                    current_image_data, "dream-prompter-edit.png"
+                    current_image_data, "dream-prompter-edit.png",
                 ),
             }
             self._add_reference_images(
-                payload, reference_images, MAX_REFERENCE_IMAGES_EDIT
+                payload, reference_images, MAX_REFERENCE_IMAGES_EDIT,
             )
 
             if progress_callback and not progress_callback(
-                _("Queueing Replicate edit prediction..."), PROGRESS_PROCESS
+                _("Queueing Replicate edit prediction..."), PROGRESS_PROCESS,
             ):
                 return None, _("Operation cancelled")
 
@@ -164,7 +164,7 @@ class ReplicateAPI:
             response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
-                _("Collecting Replicate edit output..."), PROGRESS_DOWNLOAD
+                _("Collecting Replicate edit output..."), PROGRESS_DOWNLOAD,
             ):
                 return None, _("Operation cancelled")
 
@@ -209,18 +209,18 @@ class ReplicateAPI:
             return None, _("Replicate API client is not available")
 
         if progress_callback and not progress_callback(
-            _("Preparing Replicate generation request..."), PROGRESS_PREPARE
+            _("Preparing Replicate generation request..."), PROGRESS_PREPARE,
         ):
             return None, _("Operation cancelled")
 
         try:
             payload: Dict[str, Any] = {"prompt": prompt.strip()}
             self._add_reference_images(
-                payload, reference_images, MAX_REFERENCE_IMAGES_GENERATE
+                payload, reference_images, MAX_REFERENCE_IMAGES_GENERATE,
             )
 
             if progress_callback and not progress_callback(
-                _("Queueing Replicate generation prediction..."), PROGRESS_PROCESS
+                _("Queueing Replicate generation prediction..."), PROGRESS_PROCESS,
             ):
                 return None, _("Operation cancelled")
 
@@ -233,7 +233,7 @@ class ReplicateAPI:
             response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
-                _("Collecting Replicate generation output..."), PROGRESS_DOWNLOAD
+                _("Collecting Replicate generation output..."), PROGRESS_DOWNLOAD,
             ):
                 return None, _("Operation cancelled")
 
@@ -250,7 +250,7 @@ class ReplicateAPI:
             return None, _("Unexpected error: {error}").format(error=str(e))
 
     def _run_streaming_prediction(
-        self, payload: Dict[str, Any], status_callback: Callable[[str], bool]
+        self, payload: Dict[str, Any], status_callback: Callable[[str], bool],
     ) -> Any:
         """
         Run a Replicate prediction with streaming status updates.
@@ -265,7 +265,7 @@ class ReplicateAPI:
         """
         try:
             prediction = self.client.predictions.create(
-                version=self.model_version, input=payload, stream=True
+                version=self.model_version, input=payload, stream=True,
             )
 
             # Stream the prediction status updates
@@ -338,7 +338,7 @@ class ReplicateAPI:
             return None
 
     def _parse_image_response(
-        self, response: Any
+        self, response: Any,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
         """Parse Replicate response payloads into a ``GdkPixbuf``."""
 
@@ -353,7 +353,7 @@ class ReplicateAPI:
         return None, _("Failed to decode image data from Replicate response")
 
     def _validate_reference_image(
-        self, img_path: str, max_size_mb: int = MAX_FILE_SIZE_MB
+        self, img_path: str, max_size_mb: int = MAX_FILE_SIZE_MB,
     ) -> Tuple[Optional[io.BytesIO], bool]:
         """Validate and load a reference image file for Replicate."""
 
@@ -362,7 +362,7 @@ class ReplicateAPI:
             max_bytes = max_size_mb * 1024 * 1024
             if file_size > max_bytes:
                 print(
-                    f"Warning: Image {img_path} is {file_size / (1024 * 1024):.1f} MB, exceeds {max_size_mb} MB limit. Skipping."
+                    f"Warning: Image {img_path} is {file_size / (1024 * 1024):.1f} MB, exceeds {max_size_mb} MB limit. Skipping.",
                 )
                 return None, False
 
@@ -370,14 +370,14 @@ class ReplicateAPI:
             mime_type, encoding = mimetypes.guess_type(img_path)
             if mime_type not in SUPPORTED_MIME_TYPES:
                 print(
-                    f"Warning: Image {img_path} has unsupported MIME type {mime_type} with encoding {encoding}. Skipping."
+                    f"Warning: Image {img_path} has unsupported MIME type {mime_type} with encoding {encoding}. Skipping.",
                 )
                 return None, False
 
             # Step 2: Stream-based content validation to avoid loading entire file into memory
             if not self._validate_image_file_streaming(img_path):
                 print(
-                    f"Warning: {img_path} is not a valid image file or contains corrupted data. Skipping."
+                    f"Warning: {img_path} is not a valid image file or contains corrupted data. Skipping.",
                 )
                 return None, False
 
@@ -401,7 +401,7 @@ class ReplicateAPI:
                 return None, False
 
             handle = self._create_file_handle(
-                image_data, os.path.basename(img_path) or "reference-image"
+                image_data, os.path.basename(img_path) or "reference-image",
             )
             return handle, True
 
@@ -556,8 +556,8 @@ class ReplicateAPI:
             except Exception as exc:
                 print(f"Warning: Could not read file-like response: {exc}")
 
-        if hasattr(data, "url") and isinstance(getattr(data, "url"), str):
-            image_bytes = self._download_image(getattr(data, "url"))
+        if hasattr(data, "url") and isinstance(data.url, str):
+            image_bytes = self._download_image(data.url)
             if image_bytes:
                 return image_bytes
 
@@ -583,7 +583,7 @@ class ReplicateAPI:
         return None
 
     def _download_image(
-        self, url: str, max_size_bytes: int = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024
+        self, url: str, max_size_bytes: int = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024,
     ) -> Optional[bytes]:
         """Download image bytes from a remote URL with security validation.
 
@@ -633,7 +633,7 @@ class ReplicateAPI:
                     downloaded_data += chunk
                     if len(downloaded_data) > max_size_bytes:
                         print(
-                            f"Warning: Download size exceeded limit ({max_size_bytes} bytes)"
+                            f"Warning: Download size exceeded limit ({max_size_bytes} bytes)",
                         )
                         return None
 

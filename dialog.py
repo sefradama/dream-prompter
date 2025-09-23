@@ -87,7 +87,7 @@ class DreamPrompterDialog(GimpUi.Dialog):
 
             if "api_key_visible" in settings and self.ui.toggle_visibility_btn:
                 self.ui.toggle_visibility_btn.set_active(
-                    bool(settings["api_key_visible"])
+                    bool(settings["api_key_visible"]),
                 )
 
             stored_mode = settings.get("mode", "edit")
@@ -103,7 +103,7 @@ class DreamPrompterDialog(GimpUi.Dialog):
             stored_model = settings.get("model_version", "")
             if hasattr(self.ui, "set_selected_model_version"):
                 self.ui.set_selected_model_version(
-                    stored_model if isinstance(stored_model, str) else ""
+                    stored_model if isinstance(stored_model, str) else "",
                 )
                 try:
                     self.events.get_selected_model_version()
@@ -111,7 +111,7 @@ class DreamPrompterDialog(GimpUi.Dialog):
                     print(f"Error syncing model version: {error}")
         except Exception as e:
             print(
-                f"Error applying loaded settings to UI: {e}. Dialog may not function correctly."
+                f"Error applying loaded settings to UI: {e}. Dialog may not function correctly.",
             )
             raise RuntimeError(f"Failed to initialize dialog settings: {e}") from e
 

@@ -9,11 +9,11 @@ Handles all user interactions and UI events
 import os
 import threading
 
-from gi.repository import Gtk, GLib
+from gi.repository import GLib, Gtk
 
 from dialog_threads import DreamPrompterThreads
 from i18n import _
-from settings import store_settings, load_settings
+from settings import load_settings, store_settings
 
 DEFAULT_MODEL_ENV_VAR = "REPLICATE_DEFAULT_MODEL"
 DEFAULT_MODEL_FALLBACK = "google/nano-banana"
@@ -34,7 +34,7 @@ class DreamPrompterEventHandler:
 
         self.threads = DreamPrompterThreads(ui, image, drawable)
         self.threads.set_callbacks(
-            {"on_success": self.close_on_success, "on_error": self.show_async_error}
+            {"on_success": self.close_on_success, "on_error": self.show_async_error},
         )
 
         settings = load_settings()
@@ -42,7 +42,7 @@ class DreamPrompterEventHandler:
         if hasattr(self.ui, "set_selected_model_version"):
             self.ui.set_selected_model_version(self._model_version)
         else:
-            setattr(self.ui, "selected_model_version", self._model_version)
+            self.ui.selected_model_version = self._model_version
         if self.ui.toggle_visibility_btn and self.ui.api_key_entry:
             is_visible = settings.get("api_key_visible", False)
             self.ui.toggle_visibility_btn.set_active(is_visible)
@@ -210,6 +210,11 @@ class DreamPrompterEventHandler:
         api_key_visible = self.dialog.get_api_key_visible()
         model_version = self.get_selected_model_version()
 
+        # Validate model version before proceeding to prevent crashes
+        if not model_version or not model_version.strip():
+            self.show_error(_("Please select a valid AI model"))
+            return
+
         store_settings(
             api_key,
             mode,
@@ -221,22 +226,27 @@ class DreamPrompterEventHandler:
         if self.ui.status_label:
             self.ui.status_label.set_text(_("Initializing Replicate request..."))
 
-        # Start processing and respond OK immediately to unblock GIMP
-        # Success/failure will be handled asynchronously
-        if mode == "edit":
-            self.threads.start_edit_thread(
-                api_key,
-                prompt_text,
-                self.ui.selected_files,
-                model_version,
-            )
-        else:
-            self.threads.start_generate_thread(
-                api_key,
-                prompt_text,
-                self.ui.selected_files,
-                model_version,
-            )
+        try:
+            # Start processing and respond OK immediately to unblock GIMP
+            # Success/failure will be handled asynchronously
+            if mode == "edit":
+                self.threads.start_edit_thread(
+                    api_key,
+                    prompt_text,
+                    self.ui.selected_files,
+                    model_version,
+                )
+            else:
+                self.threads.start_generate_thread(
+                    api_key,
+                    prompt_text,
+                    self.ui.selected_files,
+                    model_version,
+                )
+        except Exception as e:
+            error_msg = _("Failed to start image processing: {error}").format(error=str(e))
+            self.show_error(error_msg)
+            return
 
         # Respond immediately to unblock GIMP interface
         # Processing continues asynchronously
@@ -256,24 +266,24 @@ class DreamPrompterEventHandler:
 
                 if self.ui.generate_btn:
                     GLib.idle_add(
-                        lambda: self.ui.generate_btn.set_label(_("Generate Edit"))
+                        lambda: self.ui.generate_btn.set_label(_("Generate Edit")),
                     )
                 if self.ui.images_help_label:
                     GLib.idle_add(
                         lambda: self.ui.images_help_label.set_markup(
-                            f"<small>{_('Select up to 2 additional images')}</small>"
-                        )
+                            f"<small>{_('Select up to 2 additional images')}</small>",
+                        ),
                     )
             else:
                 if self.ui.generate_btn:
                     GLib.idle_add(
-                        lambda: self.ui.generate_btn.set_label(_("Generate Image"))
+                        lambda: self.ui.generate_btn.set_label(_("Generate Image")),
                     )
                 if self.ui.images_help_label:
                     GLib.idle_add(
                         lambda: self.ui.images_help_label.set_markup(
-                            f"<small>{_('Select up to 3 additional images')}</small>"
-                        )
+                            f"<small>{_('Select up to 3 additional images')}</small>",
+                        ),
                     )
 
         self.update_generate_button_state()
@@ -329,14 +339,14 @@ class DreamPrompterEventHandler:
                     if current_mode == "edit":
                         print(
                             _(
-                                "Cannot add {count} files. Maximum 2 reference images allowed in edit mode."
-                            ).format(count=len(files))
+                                "Cannot add {count} files. Maximum 2 reference images allowed in edit mode.",
+                            ).format(count=len(files)),
                         )
                     else:
                         print(
                             _(
-                                "Cannot add {count} files. Maximum 3 reference images allowed."
-                            ).format(count=len(files))
+                                "Cannot add {count} files. Maximum 3 reference images allowed.",
+                            ).format(count=len(files)),
                         )
 
         dialog.destroy()
@@ -350,16 +360,16 @@ class DreamPrompterEventHandler:
             self.ui.api_key_entry.set_visibility(True)
             button.set_image(
                 Gtk.Image.new_from_icon_name(
-                    "view-reveal-symbolic", Gtk.IconSize.BUTTON
-                )
+                    "view-reveal-symbolic", Gtk.IconSize.BUTTON,
+                ),
             )
             button.set_tooltip_text(_("Hide API key"))
         else:
             self.ui.api_key_entry.set_visibility(False)
             button.set_image(
                 Gtk.Image.new_from_icon_name(
-                    "view-conceal-symbolic", Gtk.IconSize.BUTTON
-                )
+                    "view-conceal-symbolic", Gtk.IconSize.BUTTON,
+                ),
             )
             button.set_tooltip_text(_("Show API key"))
 
@@ -382,7 +392,7 @@ class DreamPrompterEventHandler:
         if current_mode == "edit":
             has_drawable = self.drawable is not None
             self.ui.generate_btn.set_sensitive(
-                has_text and has_api_key and has_drawable
+                has_text and has_api_key and has_drawable,
             )
         else:
             self.ui.generate_btn.set_sensitive(has_text and has_api_key)

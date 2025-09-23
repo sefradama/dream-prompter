@@ -7,8 +7,9 @@ import base64
 import json
 import os
 import platform
-from cryptography.fernet import Fernet, InvalidToken
 from typing import Any, Dict, Literal, Tuple, Union
+
+from cryptography.fernet import Fernet, InvalidToken
 
 from constants import (
     CONFIG_FILE_NAME,
@@ -171,13 +172,13 @@ def _normalize_settings(data: Dict[str, Any]) -> Tuple[SettingsDict, bool]:
     changed = changed or prompt_changed or ("prompt" not in data)
 
     api_key_visible, visibility_changed = _sanitize_bool(
-        data.get("api_key_visible"), DEFAULT_API_KEY_VISIBLE
+        data.get("api_key_visible"), DEFAULT_API_KEY_VISIBLE,
     )
     normalized["api_key_visible"] = api_key_visible
     changed = changed or visibility_changed or ("api_key_visible" not in data)
 
     model_version, model_version_changed = _sanitize_model_version(
-        data.get("model_version")
+        data.get("model_version"),
     )
     normalized["model_version"] = model_version
     changed = changed or model_version_changed or ("model_version" not in data)
@@ -194,7 +195,7 @@ def _write_settings(settings: SettingsDict) -> None:
     settings_to_write = settings.copy()
     if "api_key" in settings_to_write:
         settings_to_write["api_key"] = _encrypt_api_key(
-            str(settings_to_write["api_key"])
+            str(settings_to_write["api_key"]),
         )
 
     with open(config_file, "w", encoding="utf-8") as f:
@@ -239,7 +240,7 @@ def load_settings() -> SettingsDict:
 
         if not isinstance(loaded, dict):
             print(
-                "Warning: Invalid settings file format - expected JSON object, using defaults"
+                "Warning: Invalid settings file format - expected JSON object, using defaults",
             )
             return DEFAULT_SETTINGS.copy()
 

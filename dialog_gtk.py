@@ -11,11 +11,11 @@ import gi
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk  # noqa: E402
-from i18n import _  # noqa: E402
 
+from i18n import _  # noqa: E402
 from ui_file_management import FileManagementUI  # noqa: E402
-from ui_model_config import ModelConfigUI  # noqa: E402
 from ui_mode_selection import ModeSelectionUI  # noqa: E402
+from ui_model_config import ModelConfigUI  # noqa: E402
 from ui_prompt_input import PromptInputUI  # noqa: E402
 from ui_status_progress import StatusProgressUI  # noqa: E402
 
@@ -173,8 +173,8 @@ class DreamPrompterUI:
         self.generate_btn.set_label(_("Generate Edit"))
         self.generate_btn.set_image(
             Gtk.Image.new_from_icon_name(
-                "applications-graphics-symbolic", Gtk.IconSize.BUTTON
-            )
+                "applications-graphics-symbolic", Gtk.IconSize.BUTTON,
+            ),
         )
         self.generate_btn.get_style_context().add_class("suggested-action")
         self.generate_btn.set_size_request(150, -1)

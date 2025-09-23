@@ -9,7 +9,7 @@ Handles all background AI processing and image operations
 import threading
 from typing import Any, Callable, Dict, List, Optional
 
-from gi.repository import GLib, GdkPixbuf
+from gi.repository import GdkPixbuf, GLib
 
 import integrator
 from api import ReplicateAPI
@@ -60,7 +60,7 @@ class DreamPrompterThreads:
     """Handles all background threading operations"""
 
     def __init__(
-        self, ui: DreamPrompterUI, image: Optional[Any], drawable: Optional[Any]
+        self, ui: DreamPrompterUI, image: Optional[Any], drawable: Optional[Any],
     ) -> None:
         """
         Initialize thread manager
@@ -109,10 +109,10 @@ class DreamPrompterThreads:
             raise ValueError("Callbacks must be a dictionary")
 
         valid_keys = {"on_success", "on_error"}
-        for key in callbacks.keys():
+        for key in callbacks:
             if key not in valid_keys:
                 raise ValueError(
-                    f"Invalid callback key: {key}. Valid keys: {valid_keys}"
+                    f"Invalid callback key: {key}. Valid keys: {valid_keys}",
                 )
 
         self._callbacks = callbacks
@@ -259,14 +259,24 @@ class DreamPrompterThreads:
                 """Progress callback for API operations"""
                 if self._state.is_cancel_requested():
                     return False
-                GLib.idle_add(self.ui.update_status, message, percentage)
+                try:
+                    GLib.idle_add(self.ui.update_status, message, percentage)
+                except Exception as e:
+                    # UI may be destroyed, silently ignore
+                    print(f"Warning: Unable to update UI status: {e}")
+                    return False
                 return True
 
             def stream_callback(message: str) -> bool:
                 """Stream status callback for real-time updates"""
                 if self._state.is_cancel_requested():
                     return False
-                GLib.idle_add(self.ui.update_status, message)
+                try:
+                    GLib.idle_add(self.ui.update_status, message)
+                except Exception as e:
+                    # UI may be destroyed, silently ignore
+                    print(f"Warning: Unable to update UI status: {e}")
+                    return False
                 return True
 
             pixbuf, error_msg = api.generate_image(
@@ -295,7 +305,7 @@ class DreamPrompterThreads:
             GLib.idle_add(
                 self._handle_error,
                 _(
-                    "Missing required package. Please install replicate: pip install replicate"
+                    "Missing required package. Please install replicate: pip install replicate",
                 ),
             )
         except (ValueError, TypeError) as e:
@@ -309,13 +319,13 @@ class DreamPrompterThreads:
             GLib.idle_add(
                 self._handle_error,
                 _("Connection failed. Check your internet and API key: {error}").format(
-                    error=str(e)
+                    error=str(e),
                 ),
             )
         except Exception as e:
             # Unexpected errors - technical issues
             error_msg = _("Unexpected error during image generation: {error}").format(
-                error=str(e)
+                error=str(e),
             )
             GLib.idle_add(self._handle_error, error_msg)
 
@@ -347,19 +357,29 @@ class DreamPrompterThreads:
             api = ReplicateAPI(api_key, model_version)
 
             def progress_callback(
-                message: str, percentage: Optional[float] = None
+                message: str, percentage: Optional[float] = None,
             ) -> bool:
                 """Progress callback for API operations"""
                 if self._state.is_cancel_requested():
                     return False
-                GLib.idle_add(self.ui.update_status, message, percentage)
+                try:
+                    GLib.idle_add(self.ui.update_status, message, percentage)
+                except Exception as e:
+                    # UI may be destroyed, silently ignore
+                    print(f"Warning: Unable to update UI status: {e}")
+                    return False
                 return True
 
             def stream_callback(message: str) -> bool:
                 """Stream status callback for real-time updates"""
                 if self._state.is_cancel_requested():
                     return False
-                GLib.idle_add(self.ui.update_status, message)
+                try:
+                    GLib.idle_add(self.ui.update_status, message)
+                except Exception as e:
+                    # UI may be destroyed, silently ignore
+                    print(f"Warning: Unable to update UI status: {e}")
+                    return False
                 return True
 
             pixbuf, error_msg = api.edit_image(
@@ -390,7 +410,7 @@ class DreamPrompterThreads:
             GLib.idle_add(
                 self._handle_error,
                 _(
-                    "Missing required package. Please install replicate: pip install replicate"
+                    "Missing required package. Please install replicate: pip install replicate",
                 ),
             )
         except (ValueError, TypeError) as e:
@@ -404,13 +424,13 @@ class DreamPrompterThreads:
             GLib.idle_add(
                 self._handle_error,
                 _("Connection failed. Check your internet and API key: {error}").format(
-                    error=str(e)
+                    error=str(e),
                 ),
             )
         except Exception as e:
             # Unexpected errors - technical issues
             error_msg = _("Unexpected error during image editing: {error}").format(
-                error=str(e)
+                error=str(e),
             )
             GLib.idle_add(self._handle_error, error_msg)
 
@@ -428,13 +448,12 @@ class DreamPrompterThreads:
             original_name = self.drawable.get_name()
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
             return _("{original} (AI Edit: {prompt})").format(
-                original=original_name, prompt=truncated_prompt
+                original=original_name, prompt=truncated_prompt,
             )
-        elif prompt:
+        if prompt:
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
             return _("AI Generated: {prompt}").format(prompt=truncated_prompt)
-        else:
-            return _("AI Layer")
+        return _("AI Layer")
 
     def _handle_cancelled(self) -> None:
         """Handle cancelled operation"""
@@ -494,7 +513,7 @@ class DreamPrompterThreads:
             self.ui.update_status(_("Adding edit layer..."), 0.9)
 
             layer = integrator.create_edit_layer(
-                self.image, self.drawable, pixbuf, layer_name
+                self.image, self.drawable, pixbuf, layer_name,
             )
             if not layer:
                 self._handle_error(_("Failed to create edit layer"))

@@ -11,32 +11,32 @@ import gi
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk  # noqa: E402
-from i18n import _  # noqa: E402
 
+from i18n import _  # noqa: E402
 
 REPLICATE_MODEL_OPTIONS = [
     (
         "google/nano-banana",
         _(
-            "Nano Banana – Conversational image generation and editing with multi-image fusion support."
+            "Nano Banana – Conversational image generation and editing with multi-image fusion support.",
         ),
     ),
     (
         "bytedance/seedream-4",
         _(
-            "SeeDream 4 – High-resolution text-to-image generation with optional reference guidance."
+            "SeeDream 4 – High-resolution text-to-image generation with optional reference guidance.",
         ),
     ),
     (
         "qwen/qwen-image-edit",
         _(
-            "Qwen Image Edit – Natural language guided edits for precise scene adjustments."
+            "Qwen Image Edit – Natural language guided edits for precise scene adjustments.",
         ),
     ),
     (
         "jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a",
         _(
-            "SwinIR – Upscaling, denoising, and artifact reduction for real-world photographs."
+            "SwinIR – Upscaling, denoising, and artifact reduction for real-world photographs.",
         ),
     ),
     (
@@ -96,7 +96,15 @@ class ModelConfigUI:
             if active_id:
                 self.selected_model_version = active_id
                 return active_id
-        return self.selected_model_version
+
+        # Fallback to stored version or default
+        if self.selected_model_version and self._model_id_exists(self.selected_model_version):
+            return self.selected_model_version
+
+        # Final fallback to default
+        default_id = self._get_default_model_id()
+        self.selected_model_version = default_id
+        return default_id
 
     def create_api_key_section(self):
         """Create API key input section"""
@@ -117,7 +125,7 @@ class ModelConfigUI:
 
         self.toggle_visibility_btn = Gtk.ToggleButton()
         self.toggle_visibility_btn.set_image(
-            Gtk.Image.new_from_icon_name("view-conceal-symbolic", Gtk.IconSize.BUTTON)
+            Gtk.Image.new_from_icon_name("view-conceal-symbolic", Gtk.IconSize.BUTTON),
         )
         self.toggle_visibility_btn.set_tooltip_text(_("Show/Hide API key"))
         key_container.pack_start(self.toggle_visibility_btn, False, False, 0)
@@ -127,7 +135,7 @@ class ModelConfigUI:
         help_label = Gtk.Label()
         help_url = "https://replicate.com/account/api-tokens"
         help_text = _(
-            'Get your token from <a href="{url}">replicate.com/account/api-tokens</a>'
+            'Get your token from <a href="{url}">replicate.com/account/api-tokens</a>',
         ).format(url=help_url)
         help_label.set_markup(f"<small>{help_text}</small>")
         help_label.set_halign(Gtk.Align.START)
@@ -144,7 +152,7 @@ class ModelConfigUI:
         self.model_combo = Gtk.ComboBoxText()
         self.model_combo.set_hexpand(True)
         self.model_combo.set_tooltip_text(
-            _("Choose which Replicate model to use for generation and editing.")
+            _("Choose which Replicate model to use for generation and editing."),
         )
 
         for model_id, label in REPLICATE_MODEL_OPTIONS:
