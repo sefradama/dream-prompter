@@ -11,4 +11,4 @@ This plan mirrors the actionable steps tracked in `REPLICATE_IMPLEMENTATION_PLAN
 - [x] Remove remaining Google-specific imports and defaults from `api.py` so Replicate callers must supply a model version instead of relying on the Nano Banana fallback.
 - [x] Update thread worker initialization to source the model version from UI/settings selections instead of a hard-coded fallback.
 - [x] Update `README.md` to remove Google-specific setup guidance and document Replicate token management plus the `replicate` Python dependency.
-- [ ] Refresh localization files and ancillary docs so all remaining Google/Gemini terminology is replaced with Replicate messaging.
+- [x] Refresh localization files and ancillary docs so all remaining Google/Gemini terminology is replaced with Replicate messaging.

@@ -3,7 +3,7 @@
 Welcome! This document captures project-wide conventions for the Dream Prompter GIMP plugin. Follow these notes for any change unless a more specific instruction overrides them.
 
 ## Project Overview
-- The plugin embeds Google's Gemini "Nano Banana" model into GIMP via Python plug-in hooks.
+- The plugin embeds Replicate-hosted image models into GIMP via Python plug-in hooks, letting users pick model versions per job.
 - GTK UI widgets live in Python modules alongside GIMP-specific integration helpers. Keep the separation between UI layout, event orchestration, threading, API integration, and GIMP image manipulation.
 - The repository ships ready-to-install code; avoid assuming availability of extra build tooling or packaging systems.
 
@@ -13,7 +13,7 @@ Welcome! This document captures project-wide conventions for the Dream Prompter 
 - `dialog_gtk.py`: UI construction routines. All widget creation and layout changes belong here.
 - `dialog_events.py`: Signal handlers, validation, and user interaction logic.
 - `dialog_threads.py`: Background threading and GLib handoff helpers for API calls and GIMP updates. Any new asynchronous work should follow its patterns.
-- `api.py`: Gemini API integration and request/response handling.
+- `api.py`: Replicate API integration and request/response handling.
 - `integrator.py`: Functions that translate pixbufs into GIMP images/layers and export existing layers.
 - `settings.py`: Persistent configuration helpers that must remain cross-platform.
 - `locale/`: gettext `.po` files (one per language). Maintain translations when user-visible text changes.
@@ -36,12 +36,12 @@ Welcome! This document captures project-wide conventions for the Dream Prompter 
 - Update selection lists (like reference images) through dedicated helpers that sync both internal data (`selected_files`) and visible widgets.
 
 ## Threading & Background Work
-- Any long-running Gemini or disk operation should run in `dialog_threads.py` using Python threads.
+- Any long-running Replicate or disk operation should run in `dialog_threads.py` using Python threads.
 - Use `GLib.idle_add` or `GLib.timeout_add_seconds` to marshal UI updates back to the GTK main loop, as demonstrated in `_generate_image_worker` and `_edit_image_worker`.
 - Ensure `_disable_ui`/`_enable_ui` or equivalent guards are invoked around asynchronous calls to keep the interface responsive.
 
 ## API Integration Guidelines
-- Keep Gemini API surface area confined to `api.py`. New API features should mirror the existing pattern: validate inputs, update progress callbacks, and translate API errors into readable messages.
+- Keep Replicate API surface area confined to `api.py`. New API features should mirror the existing pattern: validate inputs, update progress callbacks, and translate API errors into readable messages.
 - Validate file size, MIME type, and count of reference images before sending requests. Add helper routines if new constraints appear.
 - Any user-facing warnings or errors from the API layer should be localized through `_()` before presenting them to the UI or logs.
 

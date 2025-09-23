@@ -188,7 +188,7 @@ class DreamPrompterUI:
         section_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
         title_label = Gtk.Label()
-        title_label.set_markup(f"<b>{_('Replicate API Token')}</b>")
+        title_label.set_markup("<b>{}</b>".format(_("Replicate API Token")))
         title_label.set_halign(Gtk.Align.START)
         section_box.pack_start(title_label, False, False, 0)
 
