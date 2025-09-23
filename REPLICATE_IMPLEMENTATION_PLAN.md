@@ -58,12 +58,12 @@
 - [ ] Update plugin documentation strings (`procedure.set_documentation`, `PLUGIN_DESCRIPTION`) to reflect new capabilities and mention that users can pick from multiple Replicate models.
 
 ## 8. Documentation
-- [ ] Rewrite `README.md` sections (features, prerequisites, installation, API key acquisition) to reference Replicate, including instructions to install the `replicate` Python package and to create tokens on replicate.com.
-- [ ] Remove Google-specific setup instructions and replace screenshots/notes if necessary.
+- [x] Rewrite `README.md` sections (features, prerequisites, installation, API key acquisition) to reference Replicate, including instructions to install the `replicate` Python package and to create tokens on replicate.com.
+- [x] Remove Google-specific setup instructions and replace screenshots/notes if necessary.
 - [ ] Update any other docs or comments referencing Gemini/Nano Banana.
 
 ## 9. Dependency Audit
-- [ ] Ensure `google-genai` is no longer mentioned in installation or optional dependencies; add guidance for installing `replicate` (and any additional libraries needed for HTTP downloads like `requests` if used).
+- [x] Ensure `google-genai` is no longer mentioned in installation or optional dependencies; add guidance for installing `replicate` (and any additional libraries needed for HTTP downloads like `requests` if used).
 - [ ] If new third-party packages are introduced (e.g., `requests`), document them in README and verify they are compatible with GIMP's Python environment.
 
 ## 10. QA & Verification

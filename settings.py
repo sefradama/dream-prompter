@@ -23,8 +23,9 @@ DEFAULT_SETTINGS: SettingsDict = {
     "api_key": "",
     "mode": DEFAULT_MODE,
     "prompt": "",
-    "api_key_visible": DEFAULT_API_KEY_VISIBLE
+    "api_key_visible": DEFAULT_API_KEY_VISIBLE,
 }
+
 
 def get_config_file() -> str:
     """Get path to config file in GIMP's user directory"""
@@ -44,12 +45,13 @@ def get_config_file() -> str:
 
     return os.path.join(gimp_dir, CONFIG_FILE_NAME)
 
+
 def load_settings() -> SettingsDict:
     """Load settings from config file"""
     try:
         config_file = get_config_file()
         if os.path.exists(config_file):
-            with open(config_file, 'r', encoding='utf-8') as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 loaded_settings = cast(SettingsDict, json.load(f))
                 for key, default_value in DEFAULT_SETTINGS.items():
                     if key not in loaded_settings:
@@ -64,6 +66,7 @@ def load_settings() -> SettingsDict:
 
     return DEFAULT_SETTINGS.copy()
 
+
 def store_settings(api_key: str, mode: str, prompt: str, api_key_visible: bool) -> None:
     """Store settings to config file"""
     if mode not in ("edit", "generate"):
@@ -74,12 +77,12 @@ def store_settings(api_key: str, mode: str, prompt: str, api_key_visible: bool) 
             "api_key": api_key,
             "mode": mode,
             "prompt": prompt,
-            "api_key_visible": api_key_visible
+            "api_key_visible": api_key_visible,
         }
 
         config_file = get_config_file()
 
-        with open(config_file, 'w', encoding='utf-8') as f:
+        with open(config_file, "w", encoding="utf-8") as f:
             json.dump(settings, f, indent=2)
 
         if platform.system() != "Windows":
@@ -92,18 +95,21 @@ def store_settings(api_key: str, mode: str, prompt: str, api_key_visible: bool) 
     except Exception as e:
         print(f"Unexpected error storing settings: {e}")
 
+
 def _get_linux_config_dir() -> str:
     """Get Linux config directory"""
-    return os.path.join(os.path.expanduser("~"), '.config', 'GIMP', GIMP_VERSION)
+    return os.path.join(os.path.expanduser("~"), ".config", "GIMP", GIMP_VERSION)
+
 
 def _get_macos_config_dir() -> str:
     """Get macOS config directory"""
     home = os.path.expanduser("~")
-    return os.path.join(home, 'Library', 'Application Support', 'GIMP', GIMP_VERSION)
+    return os.path.join(home, "Library", "Application Support", "GIMP", GIMP_VERSION)
+
 
 def _get_windows_config_dir() -> str:
     """Get Windows config directory"""
-    appdata = os.environ.get('APPDATA')
+    appdata = os.environ.get("APPDATA")
     if not appdata:
         appdata = os.path.expanduser("~\\AppData\\Roaming")
-    return os.path.join(appdata, 'GIMP', GIMP_VERSION)
+    return os.path.join(appdata, "GIMP", GIMP_VERSION)
