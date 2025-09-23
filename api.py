@@ -28,6 +28,7 @@ from constants import (
     PROGRESS_PROCESS,
     PROGRESS_UPLOAD,
     SUPPORTED_MIME_TYPES,
+    TRUSTED_DOMAINS,
     VALIDATION_CHUNK_SIZE,
     VALIDATION_HEADER_SIZE,
     VALIDATION_MAX_CHUNKS,
@@ -72,7 +73,7 @@ class ReplicateAPI:
 
         if not REPLICATE_AVAILABLE:
             raise ImportError(
-                _("Replicate API not available. Please install the replicate package."),
+                _("Replicate API not available. Please install the replicate package.")
             )
 
         resolved_key = (
@@ -90,13 +91,19 @@ class ReplicateAPI:
         self.api_key = resolved_key
         self.model_version = model_version.strip() if model_version else ""
 
-        self.client = replicate.Client(api_token=self.api_key) if replicate else None
+        try:
+            self.client = (
+                replicate.Client(api_token=self.api_key) if replicate else None
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Replicate client: {e}") from e
 
     def edit_image(
         self,
         image: Gimp.Image,
         prompt: str,
         reference_images: Optional[List[str]] = None,
+        output_format: Optional[str] = None,
         progress_callback: Optional[Callable[[str, Optional[float]], bool]] = None,
         stream_callback: Optional[Callable[[str], bool]] = None,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
@@ -126,7 +133,8 @@ class ReplicateAPI:
             return None, _("No GIMP image provided for editing")
 
         if progress_callback and not progress_callback(
-            _("Preparing current image for Replicate..."), PROGRESS_PREPARE,
+            _("Preparing current image for Replicate..."),
+            PROGRESS_PREPARE,
         ):
             return None, _("Operation cancelled")
 
@@ -136,22 +144,36 @@ class ReplicateAPI:
                 return None, _("Failed to export current image")
 
             if progress_callback and not progress_callback(
-                _("Building Replicate edit request..."), PROGRESS_UPLOAD,
+                _("Building Replicate edit request..."),
+                PROGRESS_UPLOAD,
             ):
                 return None, _("Operation cancelled")
 
             payload: Dict[str, Any] = {
                 "prompt": prompt.strip(),
                 "image": self._create_file_handle(
-                    current_image_data, "dream-prompter-edit.png",
+                    current_image_data,
+                    "dream-prompter-edit.png",
                 ),
             }
+
+            # Set output_format if specified
+            if output_format:
+                payload["output_format"] = output_format
+            # Default output_format to png for qwen-image-edit to avoid webp format
+            # which is not supported by GdkPixbuf
+            elif self.model_version == "qwen/qwen-image-edit":
+                payload["output_format"] = "png"
+
             self._add_reference_images(
-                payload, reference_images, MAX_REFERENCE_IMAGES_EDIT,
+                payload,
+                reference_images,
+                MAX_REFERENCE_IMAGES_EDIT,
             )
 
             if progress_callback and not progress_callback(
-                _("Queueing Replicate edit prediction..."), PROGRESS_PROCESS,
+                _("Queueing Replicate edit prediction..."),
+                PROGRESS_PROCESS,
             ):
                 return None, _("Operation cancelled")
 
@@ -164,7 +186,8 @@ class ReplicateAPI:
             response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
-                _("Collecting Replicate edit output..."), PROGRESS_DOWNLOAD,
+                _("Collecting Replicate edit output..."),
+                PROGRESS_DOWNLOAD,
             ):
                 return None, _("Operation cancelled")
 
@@ -209,18 +232,22 @@ class ReplicateAPI:
             return None, _("Replicate API client is not available")
 
         if progress_callback and not progress_callback(
-            _("Preparing Replicate generation request..."), PROGRESS_PREPARE,
+            _("Preparing Replicate generation request..."),
+            PROGRESS_PREPARE,
         ):
             return None, _("Operation cancelled")
 
         try:
             payload: Dict[str, Any] = {"prompt": prompt.strip()}
             self._add_reference_images(
-                payload, reference_images, MAX_REFERENCE_IMAGES_GENERATE,
+                payload,
+                reference_images,
+                MAX_REFERENCE_IMAGES_GENERATE,
             )
 
             if progress_callback and not progress_callback(
-                _("Queueing Replicate generation prediction..."), PROGRESS_PROCESS,
+                _("Queueing Replicate generation prediction..."),
+                PROGRESS_PROCESS,
             ):
                 return None, _("Operation cancelled")
 
@@ -233,7 +260,8 @@ class ReplicateAPI:
             response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
-                _("Collecting Replicate generation output..."), PROGRESS_DOWNLOAD,
+                _("Collecting Replicate generation output..."),
+                PROGRESS_DOWNLOAD,
             ):
                 return None, _("Operation cancelled")
 
@@ -250,7 +278,9 @@ class ReplicateAPI:
             return None, _("Unexpected error: {error}").format(error=str(e))
 
     def _run_streaming_prediction(
-        self, payload: Dict[str, Any], status_callback: Callable[[str], bool],
+        self,
+        payload: Dict[str, Any],
+        status_callback: Callable[[str], bool],
     ) -> Any:
         """
         Run a Replicate prediction with streaming status updates.
@@ -265,7 +295,9 @@ class ReplicateAPI:
         """
         try:
             prediction = self.client.predictions.create(
-                version=self.model_version, input=payload, stream=True,
+                version=self.model_version,
+                input=payload,
+                stream=True,
             )
 
             # Stream the prediction status updates
@@ -338,7 +370,8 @@ class ReplicateAPI:
             return None
 
     def _parse_image_response(
-        self, response: Any,
+        self,
+        response: Any,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
         """Parse Replicate response payloads into a ``GdkPixbuf``."""
 
@@ -353,7 +386,9 @@ class ReplicateAPI:
         return None, _("Failed to decode image data from Replicate response")
 
     def _validate_reference_image(
-        self, img_path: str, max_size_mb: int = MAX_FILE_SIZE_MB,
+        self,
+        img_path: str,
+        max_size_mb: int = MAX_FILE_SIZE_MB,
     ) -> Tuple[Optional[io.BytesIO], bool]:
         """Validate and load a reference image file for Replicate."""
 
@@ -401,7 +436,8 @@ class ReplicateAPI:
                 return None, False
 
             handle = self._create_file_handle(
-                image_data, os.path.basename(img_path) or "reference-image",
+                image_data,
+                os.path.basename(img_path) or "reference-image",
             )
             return handle, True
 
@@ -517,6 +553,17 @@ class ReplicateAPI:
         if data is None:
             return None
 
+        # Handle FileOutput objects from Replicate library (new client behavior)
+        if hasattr(data, "read") and callable(data.read):
+            try:
+                if hasattr(data, "seek") and callable(data.seek):
+                    data.seek(0)
+                file_bytes = data.read()
+                if isinstance(file_bytes, bytes) and file_bytes:
+                    return file_bytes
+            except Exception as exc:
+                print(f"Warning: Could not read FileOutput object: {exc}")
+
         if isinstance(data, bytes):
             return data
 
@@ -546,16 +593,7 @@ class ReplicateAPI:
                 print(f"Warning: Base64 decode failed: {e}")
                 return None
 
-        if hasattr(data, "read") and callable(data.read):
-            try:
-                if hasattr(data, "seek") and callable(data.seek):
-                    data.seek(0)
-                file_bytes = data.read()
-                if file_bytes:
-                    return file_bytes
-            except Exception as exc:
-                print(f"Warning: Could not read file-like response: {exc}")
-
+        # Fallback: Check if object has url property (FileOutput objects)
         if hasattr(data, "url") and isinstance(data.url, str):
             image_bytes = self._download_image(data.url)
             if image_bytes:
@@ -583,7 +621,9 @@ class ReplicateAPI:
         return None
 
     def _download_image(
-        self, url: str, max_size_bytes: int = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024,
+        self,
+        url: str,
+        max_size_bytes: int = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024,
     ) -> Optional[bytes]:
         """Download image bytes from a remote URL with security validation.
 
@@ -597,7 +637,6 @@ class ReplicateAPI:
         from urllib.parse import urlparse
 
         # Security: Only allow downloads from trusted replicate domains
-        TRUSTED_DOMAINS = {"replicate.com", "replicate.ai", "api.replicate.com"}
 
         try:
             parsed = urlparse(url)

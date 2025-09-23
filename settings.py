@@ -172,7 +172,8 @@ def _normalize_settings(data: Dict[str, Any]) -> Tuple[SettingsDict, bool]:
     changed = changed or prompt_changed or ("prompt" not in data)
 
     api_key_visible, visibility_changed = _sanitize_bool(
-        data.get("api_key_visible"), DEFAULT_API_KEY_VISIBLE,
+        data.get("api_key_visible"),
+        DEFAULT_API_KEY_VISIBLE,
     )
     normalized["api_key_visible"] = api_key_visible
     changed = changed or visibility_changed or ("api_key_visible" not in data)

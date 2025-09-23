@@ -51,7 +51,12 @@ VALIDATION_MAX_CHUNKS = 10
 """Maximum chunks to read for validation"""
 
 # Security
-TRUSTED_DOMAINS = {"replicate.com", "replicate.ai", "api.replicate.com"}
+TRUSTED_DOMAINS = {
+    "replicate.com",
+    "replicate.ai",
+    "api.replicate.com",
+    "replicate.delivery",
+}
 """Trusted domains for image downloads"""
 
 DOWNLOAD_TIMEOUT = 30

@@ -61,27 +61,33 @@ class DreamPrompterEventHandler:
     def close_on_success(self):
         """Handle successful completion - show success message since dialog is already closed"""
         success_msg = _("Image generation completed successfully!")
-        dialog = Gtk.MessageDialog(
-            parent=None,  # No parent since main dialog is closed
-            modal=True,
-            message_type=Gtk.MessageType.INFO,
-            buttons=Gtk.ButtonsType.OK,
-            text=success_msg,
-        )
-        dialog.run()
-        dialog.destroy()
+        try:
+            dialog = Gtk.MessageDialog(
+                parent=None,  # No parent since main dialog is closed
+                modal=True,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text=success_msg,
+            )
+            dialog.run()
+            dialog.destroy()
+        except Exception as e:
+            print(f"Warning: Unable to show success dialog: {e}")
 
     def show_async_error(self, message):
         """Show error message for async processing failures - dialog is already closed"""
-        dialog = Gtk.MessageDialog(
-            parent=None,  # No parent since main dialog is closed
-            modal=True,
-            message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,
-            text=message,
-        )
-        dialog.run()
-        dialog.destroy()
+        try:
+            dialog = Gtk.MessageDialog(
+                parent=None,  # No parent since main dialog is closed
+                modal=True,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text=message,
+            )
+            dialog.run()
+            dialog.destroy()
+        except Exception as e:
+            print(f"Warning: Unable to show error dialog: {e}")
 
     def show_error(self, message):
         """Show error message in dialog for validation errors during user interaction"""
@@ -187,8 +193,14 @@ class DreamPrompterEventHandler:
 
     def on_generate(self, _button):
         """Handle generate button - main AI processing entry point"""
-        api_key = self.dialog.get_api_key()
-        prompt_text = self.dialog.get_prompt()
+        try:
+            api_key = self.dialog.get_api_key()
+            prompt_text = self.dialog.get_prompt()
+        except Exception as e:
+            self.show_error(
+                _("Error accessing form data: {error}").format(error=str(e))
+            )
+            return
 
         if not api_key:
             self.show_error(_("Please enter your Replicate API token"))
@@ -199,58 +211,74 @@ class DreamPrompterEventHandler:
             return
 
         if (
-            self.ui.edit_mode_radio
+            hasattr(self.ui, "edit_mode_radio")
+            and self.ui.edit_mode_radio
             and self.ui.edit_mode_radio.get_active()
             and not self.drawable
         ):
             self.show_error(_("Edit mode requires a selected layer"))
             return
 
-        mode = self.dialog.get_current_mode()
-        api_key_visible = self.dialog.get_api_key_visible()
-        model_version = self.get_selected_model_version()
+        try:
+            mode = self.dialog.get_current_mode()
+            api_key_visible = self.dialog.get_api_key_visible()
+            model_version = self.get_selected_model_version()
+        except Exception as e:
+            self.show_error(
+                _("Error accessing dialog state: {error}").format(error=str(e))
+            )
+            return
 
         # Validate model version before proceeding to prevent crashes
         if not model_version or not model_version.strip():
             self.show_error(_("Please select a valid AI model"))
             return
 
-        store_settings(
-            api_key,
-            mode,
-            prompt_text,
-            api_key_visible,
-            model_version,
-        )
+        try:
+            store_settings(
+                api_key,
+                mode,
+                prompt_text,
+                api_key_visible,
+                model_version,
+            )
+        except Exception as e:
+            print(f"Warning: Failed to save settings: {e}")  # Continue anyway for now
 
         if self.ui.status_label:
             self.ui.status_label.set_text(_("Initializing Replicate request..."))
 
+        # Synchronous processing while dialog remains open for proper UI handling
         try:
-            # Start processing and respond OK immediately to unblock GIMP
-            # Success/failure will be handled asynchronously
+            if self.ui.status_label:
+                self.ui.status_label.set_text(_("Processing request..."))
+
             if mode == "edit":
-                self.threads.start_edit_thread(
+                output_format = (
+                    self.ui.get_output_format()
+                    if hasattr(self.ui, "get_output_format")
+                    else None
+                )
+                success, result_msg = self._sync_edit(
                     api_key,
                     prompt_text,
                     self.ui.selected_files,
                     model_version,
+                    output_format,
                 )
             else:
-                self.threads.start_generate_thread(
-                    api_key,
-                    prompt_text,
-                    self.ui.selected_files,
-                    model_version,
+                success, result_msg = self._sync_generate(
+                    api_key, prompt_text, self.ui.selected_files, model_version
                 )
-        except Exception as e:
-            error_msg = _("Failed to start image processing: {error}").format(error=str(e))
-            self.show_error(error_msg)
-            return
 
-        # Respond immediately to unblock GIMP interface
-        # Processing continues asynchronously
-        self.dialog.response(Gtk.ResponseType.OK)
+            if success:
+                self.dialog.response(Gtk.ResponseType.OK)
+            else:
+                self.show_error(result_msg)
+
+        except Exception as e:
+            error_msg = f"Unexpected error during processing: {str(e)}"
+            self.show_error(error_msg)
 
     def on_mode_changed(self, radio_button):
         """Handle mode selection changes"""
@@ -360,7 +388,8 @@ class DreamPrompterEventHandler:
             self.ui.api_key_entry.set_visibility(True)
             button.set_image(
                 Gtk.Image.new_from_icon_name(
-                    "view-reveal-symbolic", Gtk.IconSize.BUTTON,
+                    "view-reveal-symbolic",
+                    Gtk.IconSize.BUTTON,
                 ),
             )
             button.set_tooltip_text(_("Hide API key"))
@@ -368,10 +397,109 @@ class DreamPrompterEventHandler:
             self.ui.api_key_entry.set_visibility(False)
             button.set_image(
                 Gtk.Image.new_from_icon_name(
-                    "view-conceal-symbolic", Gtk.IconSize.BUTTON,
+                    "view-conceal-symbolic",
+                    Gtk.IconSize.BUTTON,
                 ),
             )
             button.set_tooltip_text(_("Show API key"))
+
+    def _sync_generate(self, api_key, prompt, reference_images, model_version):
+        """Synchronous image generation with proper UI updates"""
+        from api import ReplicateAPI
+        from integrator import create_new_image
+
+        try:
+            api = ReplicateAPI(api_key, model_version)
+
+            if self.ui.status_label:
+                self.ui.status_label.set_text(_("Preparing generation request..."))
+
+            pixbuf, error_msg = api.generate_image(
+                prompt=prompt,
+                reference_images=reference_images,
+                progress_callback=self._sync_progress_callback,
+                stream_callback=self._sync_stream_callback,
+            )
+
+            if error_msg:
+                return False, error_msg
+
+            if not pixbuf:
+                error_msg = _("No image data received from API")
+                return False, error_msg
+
+            if self.ui.status_label:
+                self.ui.status_label.set_text(_("Creating new GIMP image..."))
+
+            image = create_new_image(pixbuf, prompt)
+            if not image:
+                error_msg = _("Failed to create GIMP image")
+                return False, error_msg
+
+            return True, _("Image generated successfully!")
+
+        except Exception as e:
+            error_msg = f"Generation failed: {str(e)}"
+            return False, error_msg
+
+    def _sync_edit(
+        self, api_key, prompt, reference_images, model_version, output_format=None
+    ):
+        """Synchronous image editing with proper UI updates"""
+        from api import ReplicateAPI
+        from integrator import create_edit_layer
+
+        try:
+            if not self.image or not self.drawable:
+                error_msg = _("No image available for editing")
+                return False, error_msg
+
+            api = ReplicateAPI(api_key, model_version)
+
+            if self.ui.status_label:
+                self.ui.status_label.set_text(_("Preparing edit request..."))
+
+            pixbuf, error_msg = api.edit_image(
+                image=self.image,
+                prompt=prompt,
+                reference_images=reference_images,
+                output_format=output_format,
+                progress_callback=self._sync_progress_callback,
+                stream_callback=self._sync_stream_callback,
+            )
+
+            if error_msg:
+                return False, error_msg
+
+            if not pixbuf:
+                error_msg = _("No image data received from API")
+                return False, error_msg
+
+            if self.ui.status_label:
+                self.ui.status_label.set_text(_("Adding edit layer..."))
+
+            layer = create_edit_layer(self.image, self.drawable, pixbuf, prompt)
+            if not layer:
+                error_msg = _("Failed to create edit layer")
+                return False, error_msg
+
+            return True, _("Image edited successfully!")
+
+        except Exception as e:
+            error_msg = f"Editing failed: {str(e)}"
+            return False, error_msg
+
+    def _sync_progress_callback(self, message, percentage=None):
+        """Progress callback that works while dialog is still open"""
+        if self.ui.status_label:
+            self.ui.status_label.set_text(message)
+        return True  # Continue processing
+
+    def _sync_stream_callback(self, message):
+        """Stream callback that works while dialog is still open"""
+        if self.ui.status_label:
+            self.ui.status_label.set_text(message)
+        return True  # Continue processing
 
     def update_generate_button_state(self):
         """Update generate button sensitivity based on input state"""

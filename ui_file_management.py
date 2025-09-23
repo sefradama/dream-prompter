@@ -147,7 +147,8 @@ class FileManagementUI:
         file_box.set_margin_end(6)
 
         icon = Gtk.Image.new_from_icon_name(
-            "image-x-generic-symbolic", Gtk.IconSize.SMALL_TOOLBAR,
+            "image-x-generic-symbolic",
+            Gtk.IconSize.SMALL_TOOLBAR,
         )
         file_box.pack_start(icon, False, False, 0)
 
@@ -167,7 +168,8 @@ class FileManagementUI:
         remove_btn = Gtk.Button()
         remove_btn.set_image(
             Gtk.Image.new_from_icon_name(
-                "edit-delete-symbolic", Gtk.IconSize.SMALL_TOOLBAR,
+                "edit-delete-symbolic",
+                Gtk.IconSize.SMALL_TOOLBAR,
             ),
         )
         remove_btn.set_relief(Gtk.ReliefStyle.NONE)

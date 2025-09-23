@@ -54,7 +54,9 @@ def create_edit_layer(image, drawable, pixbuf, layer_name):
 
             if pixbuf_width != img_width or pixbuf_height != img_height:
                 pixbuf = pixbuf.scale_simple(
-                    img_width, img_height, GdkPixbuf.InterpType.BILINEAR,
+                    img_width,
+                    img_height,
+                    GdkPixbuf.InterpType.BILINEAR,
                 )
 
         if not pixbuf.get_has_alpha():
@@ -178,7 +180,10 @@ def export_current_region_to_bytes(image):
         temp_gfile = Gio.File.new_for_path(temp_path)
 
         success = Gimp.file_save(
-            Gimp.RunMode.NONINTERACTIVE, duplicate, temp_gfile, None,
+            Gimp.RunMode.NONINTERACTIVE,
+            duplicate,
+            temp_gfile,
+            None,
         )
 
         if not success:
@@ -237,7 +242,10 @@ def export_gimp_image_to_bytes(image):
         temp_gfile = Gio.File.new_for_path(temp_path)
 
         success = Gimp.file_save(
-            Gimp.RunMode.NONINTERACTIVE, duplicate, temp_gfile, None,
+            Gimp.RunMode.NONINTERACTIVE,
+            duplicate,
+            temp_gfile,
+            None,
         )
 
         if not success:

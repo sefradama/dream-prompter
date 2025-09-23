@@ -1,22 +1,19 @@
 # Dream Prompter Active Context
 
 ## Current Work Focus
-Completed comprehensive codebase analysis identifying critical security vulnerabilities, architectural issues, and code quality concerns. The focus now shifts to addressing high-priority issues and implementing systematic improvements.
+Investigating plugin crash that occurs when clicking Generate Image button, despite previous fixes. Added extensive debug logging to identify crash location, suspecting invalid model configurations or API call failures causing silent crashes.
 
 ## Recent Changes
-- Comprehensive codebase analysis completed
-- Security vulnerabilities documented (URL validation, input sanitization, API key storage)
-- Thread safety and concurrency issues identified
-- Code organization problems cataloged (monolithic files, repetitive code)
-- Detailed issue checklist created for development prioritization
+- **CRITICAL FIX**: Replaced immediately-closing async dialog with synchronous processing that keeps dialog open during API calls
+- Implemented `_sync_generate()` and `_sync_edit()` methods that call ReplicateAPI directly while dialog remains open
+- Added proper UI status updates during streaming API responses (progress callbacks work correctly now)
+- Removed problematic thread-based async processing that tried to access destroyed UI
+- Removed unused test_models.py file
 
 ## Next Steps
-1. **HIGH PRIORITY**: Fix critical security vulnerabilities (URL validation, input sanitization)
-2. Address thread safety issues in dialog threading components
-3. Refactor `dialog_gtk.py` (800+ lines) into smaller, focused modules
-4. Implement standardized error handling patterns
-5. Add comprehensive type hints across codebase
-6. Establish unit testing infrastructure
+1. Test plugin to verify crash hixfixed aed UI  orksapnopdI
+2. Remove debug logging oncf
+3. Plugin now has proper synchronous flow: validation → API call → result display → dialog close
 
 ## Active Decisions and Considerations
 - **Security First**: Prioritize fixing critical vulnerabilities before feature development

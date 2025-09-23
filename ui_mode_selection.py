@@ -37,7 +37,8 @@ class ModeSelectionUI:
         radio_box.pack_start(self.edit_mode_radio, False, False, 0)
 
         self.generate_mode_radio = Gtk.RadioButton.new_with_label_from_widget(
-            self.edit_mode_radio, _("Generate Image"),
+            self.edit_mode_radio,
+            _("Generate Image"),
         )
         radio_box.pack_start(self.generate_mode_radio, False, False, 0)
 

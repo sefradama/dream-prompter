@@ -60,7 +60,10 @@ class DreamPrompterThreads:
     """Handles all background threading operations"""
 
     def __init__(
-        self, ui: DreamPrompterUI, image: Optional[Any], drawable: Optional[Any],
+        self,
+        ui: DreamPrompterUI,
+        image: Optional[Any],
+        drawable: Optional[Any],
     ) -> None:
         """
         Initialize thread manager
@@ -357,7 +360,8 @@ class DreamPrompterThreads:
             api = ReplicateAPI(api_key, model_version)
 
             def progress_callback(
-                message: str, percentage: Optional[float] = None,
+                message: str,
+                percentage: Optional[float] = None,
             ) -> bool:
                 """Progress callback for API operations"""
                 if self._state.is_cancel_requested():
@@ -448,7 +452,8 @@ class DreamPrompterThreads:
             original_name = self.drawable.get_name()
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
             return _("{original} (AI Edit: {prompt})").format(
-                original=original_name, prompt=truncated_prompt,
+                original=original_name,
+                prompt=truncated_prompt,
             )
         if prompt:
             truncated_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
@@ -513,7 +518,10 @@ class DreamPrompterThreads:
             self.ui.update_status(_("Adding edit layer..."), 0.9)
 
             layer = integrator.create_edit_layer(
-                self.image, self.drawable, pixbuf, layer_name,
+                self.image,
+                self.drawable,
+                pixbuf,
+                layer_name,
             )
             if not layer:
                 self._handle_error(_("Failed to create edit layer"))

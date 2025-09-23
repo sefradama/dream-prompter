@@ -173,7 +173,8 @@ class DreamPrompterUI:
         self.generate_btn.set_label(_("Generate Edit"))
         self.generate_btn.set_image(
             Gtk.Image.new_from_icon_name(
-                "applications-graphics-symbolic", Gtk.IconSize.BUTTON,
+                "applications-graphics-symbolic",
+                Gtk.IconSize.BUTTON,
             ),
         )
         self.generate_btn.get_style_context().add_class("suggested-action")

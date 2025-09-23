@@ -35,7 +35,11 @@ class DreamPrompter(Gimp.PlugIn):
         """Create the plugin procedure"""
         if name == "dream-prompter":
             procedure = Gimp.ImageProcedure.new(
-                self, name, Gimp.PDBProcType.PLUGIN, self.run_dream_prompter, None,
+                self,
+                name,
+                Gimp.PDBProcType.PLUGIN,
+                self.run_dream_prompter,
+                None,
             )
             procedure.set_image_types("*")
             procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.ALWAYS)
@@ -63,7 +67,13 @@ class DreamPrompter(Gimp.PlugIn):
         return DOMAIN
 
     def run_dream_prompter(
-        self, procedure, run_mode, image, drawables, _config, _run_data,
+        self,
+        procedure,
+        run_mode,
+        image,
+        drawables,
+        _config,
+        _run_data,
     ):
         """Run the Dream Prompter plugin"""
         if run_mode == Gimp.RunMode.INTERACTIVE:
@@ -86,10 +96,12 @@ class DreamPrompter(Gimp.PlugIn):
                 # We return immediately so GIMP isn't blocked
                 if response == Gtk.ResponseType.OK:
                     return procedure.new_return_values(
-                        Gimp.PDBStatusType.SUCCESS, GLib.Error(),
+                        Gimp.PDBStatusType.SUCCESS,
+                        GLib.Error(),
                     )
                 return procedure.new_return_values(
-                    Gimp.PDBStatusType.CANCEL, GLib.Error(),
+                    Gimp.PDBStatusType.CANCEL,
+                    GLib.Error(),
                 )
 
             except Exception as e:
@@ -99,7 +111,8 @@ class DreamPrompter(Gimp.PlugIn):
                 print(error_msg)
                 Gimp.message(error_msg)
                 return procedure.new_return_values(
-                    Gimp.PDBStatusType.EXECUTION_ERROR, GLib.Error(),
+                    Gimp.PDBStatusType.EXECUTION_ERROR,
+                    GLib.Error(),
                 )
 
         return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
