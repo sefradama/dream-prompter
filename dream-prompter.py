@@ -22,7 +22,9 @@ from i18n import _, DOMAIN  # noqa: E402
 
 PLUGIN_NAME = "dream-prompter"
 PLUGIN_VERSION = "1.0.3"
-PLUGIN_DESCRIPTION = "AI-powered image creation/editing with Replicate"
+PLUGIN_DESCRIPTION = (
+    "AI-powered image creation/editing with selectable Replicate models"
+)
 
 
 class DreamPrompter(Gimp.PlugIn):
@@ -37,9 +39,9 @@ class DreamPrompter(Gimp.PlugIn):
             procedure.set_image_types("*")
             procedure.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.ALWAYS)
             procedure.set_documentation(
-                _("AI-powered image creation/editing with Replicate"),
+                _("AI-powered image creation/editing with selectable Replicate models"),
                 _(
-                    "Transform existing images or generate new images using Replicate-hosted models with natural language prompts. "
+                    "Choose from curated Replicate-hosted models to transform existing images or generate new artwork using natural language prompts. "
                     "Supports consistent multi-turn editing and image merging capabilities."
                 ),
                 name,
