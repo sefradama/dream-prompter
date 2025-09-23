@@ -53,7 +53,7 @@
 
 ## 7. Dialog Metadata (`dialog.py` & `dream-prompter.py`)
 - [x] Update window titles, descriptions, and registration metadata to describe Replicate usage instead of Nano Banana.
-- [ ] Update plugin documentation strings (`procedure.set_documentation`, `PLUGIN_DESCRIPTION`) to reflect new capabilities and mention that users can pick from multiple Replicate models.
+- [x] Update plugin documentation strings (`procedure.set_documentation`, `PLUGIN_DESCRIPTION`) to reflect new capabilities and mention that users can pick from multiple Replicate models.
 
 ## 8. Documentation
 - [x] Rewrite `README.md` sections (features, prerequisites, installation, API key acquisition) to reference Replicate, including instructions to install the `replicate` Python package and to create tokens on replicate.com.
