@@ -197,9 +197,8 @@ class DreamPrompterEventHandler:
             api_key = self.dialog.get_api_key()
             prompt_text = self.dialog.get_prompt()
         except Exception as e:
-            self.show_error(
-                _("Error accessing form data: {error}").format(error=str(e))
-            )
+            error_msg = _("Error accessing form data: {error}").format(error=str(e))
+            self.show_error(error_msg)
             return
 
         if not api_key:
@@ -224,9 +223,8 @@ class DreamPrompterEventHandler:
             api_key_visible = self.dialog.get_api_key_visible()
             model_version = self.get_selected_model_version()
         except Exception as e:
-            self.show_error(
-                _("Error accessing dialog state: {error}").format(error=str(e))
-            )
+            error_msg = _("Error accessing dialog state: {error}").format(error=str(e))
+            self.show_error(error_msg)
             return
 
         # Validate model version before proceeding to prevent crashes
@@ -277,7 +275,7 @@ class DreamPrompterEventHandler:
                 self.show_error(result_msg)
 
         except Exception as e:
-            error_msg = f"Unexpected error during processing: {str(e)}"
+            error_msg = "Unexpected error during processing: {0}".format(str(e))
             self.show_error(error_msg)
 
     def on_mode_changed(self, radio_button):
@@ -297,22 +295,26 @@ class DreamPrompterEventHandler:
                         lambda: self.ui.generate_btn.set_label(_("Generate Edit")),
                     )
                 if self.ui.images_help_label:
-                    GLib.idle_add(
-                        lambda: self.ui.images_help_label.set_markup(
-                            f"<small>{_('Select up to 2 additional images')}</small>",
-                        ),
+                    help_text = "<small>{0}</small>".format(
+                        _("Select up to 3 additional images")
                     )
+                    GLib.idle_add(
+                        lambda: self.ui.images_help_label.set_markup(help_text),
+                    )
+                self.ui.set_mode("edit") if hasattr(self.ui, "set_mode") else None
             else:
                 if self.ui.generate_btn:
                     GLib.idle_add(
                         lambda: self.ui.generate_btn.set_label(_("Generate Image")),
                     )
                 if self.ui.images_help_label:
-                    GLib.idle_add(
-                        lambda: self.ui.images_help_label.set_markup(
-                            f"<small>{_('Select up to 3 additional images')}</small>",
-                        ),
+                    help_text = "<small>{0}</small>".format(
+                        _("Select up to 3 additional images")
                     )
+                    GLib.idle_add(
+                        lambda: self.ui.images_help_label.set_markup(help_text),
+                    )
+                self.ui.set_mode("generate") if hasattr(self.ui, "set_mode") else None
 
         self.update_generate_button_state()
 
@@ -409,6 +411,13 @@ class DreamPrompterEventHandler:
         from integrator import create_new_image
 
         try:
+            # Get model-specific parameters
+            extra_params = (
+                self.ui.get_model_parameters()
+                if hasattr(self.ui, "get_model_parameters")
+                else {}
+            )
+
             api = ReplicateAPI(api_key, model_version)
 
             if self.ui.status_label:
@@ -417,6 +426,7 @@ class DreamPrompterEventHandler:
             pixbuf, error_msg = api.generate_image(
                 prompt=prompt,
                 reference_images=reference_images,
+                extra_params=extra_params,
                 progress_callback=self._sync_progress_callback,
                 stream_callback=self._sync_stream_callback,
             )
@@ -439,7 +449,7 @@ class DreamPrompterEventHandler:
             return True, _("Image generated successfully!")
 
         except Exception as e:
-            error_msg = f"Generation failed: {str(e)}"
+            error_msg = "Generation failed: {0}".format(str(e))
             return False, error_msg
 
     def _sync_edit(
@@ -486,7 +496,7 @@ class DreamPrompterEventHandler:
             return True, _("Image edited successfully!")
 
         except Exception as e:
-            error_msg = f"Editing failed: {str(e)}"
+            error_msg = "Editing failed: {0}".format(str(e))
             return False, error_msg
 
     def _sync_progress_callback(self, message, percentage=None):

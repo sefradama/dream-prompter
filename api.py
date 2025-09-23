@@ -207,6 +207,7 @@ class ReplicateAPI:
         self,
         prompt: str,
         reference_images: Optional[List[str]] = None,
+        extra_params: Optional[Dict[str, Any]] = None,
         progress_callback: Optional[Callable[[str, Optional[float]], bool]] = None,
         stream_callback: Optional[Callable[[str], bool]] = None,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
@@ -239,6 +240,11 @@ class ReplicateAPI:
 
         try:
             payload: Dict[str, Any] = {"prompt": prompt.strip()}
+
+            # Add extra parameters if provided
+            if extra_params:
+                payload.update(extra_params)
+
             self._add_reference_images(
                 payload,
                 reference_images,
