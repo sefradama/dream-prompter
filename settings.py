@@ -10,16 +10,19 @@ import platform
 from cryptography.fernet import Fernet, InvalidToken
 from typing import Any, Dict, Literal, Tuple, Union
 
+from constants import (
+    CONFIG_FILE_NAME,
+    DEFAULT_API_KEY_VISIBLE,
+    DEFAULT_MODE,
+    DEFAULT_MODEL_VERSION,
+    ENCRYPTION_KEY_FILE,
+    FILE_PERMISSIONS,
+    GIMP_VERSION,
+)
+
 ModeKey = Literal["edit", "generate"]
 SettingsDict = Dict[str, Union[str, bool]]
 
-CONFIG_FILE_NAME = "dream-prompter-config.json"
-GIMP_VERSION = "3.0"
-FILE_PERMISSIONS = 0o600
-
-DEFAULT_MODE: ModeKey = "edit"
-DEFAULT_API_KEY_VISIBLE = False
-DEFAULT_MODEL_VERSION = "google/nano-banana"
 DEFAULT_SETTINGS: SettingsDict = {
     "api_key": "",
     "mode": DEFAULT_MODE,
@@ -27,9 +30,6 @@ DEFAULT_SETTINGS: SettingsDict = {
     "api_key_visible": DEFAULT_API_KEY_VISIBLE,
     "model_version": DEFAULT_MODEL_VERSION,
 }
-
-# Encryption key file for API key security
-ENCRYPTION_KEY_FILE = "dream-prompter-key"
 
 
 def _get_encryption_key() -> bytes:
@@ -78,7 +78,12 @@ def _decrypt_api_key(encrypted_key: str) -> str:
 
     try:
         # Check if it looks like encrypted (base64) data
-        if not encrypted_key.replace('+', '').replace('/', '').replace('=', '').isalnum():
+        if (
+            not encrypted_key.replace("+", "")
+            .replace("/", "")
+            .replace("=", "")
+            .isalnum()
+        ):
             # Not encrypted format, return as-is for backward compatibility
             return encrypted_key
 
@@ -188,7 +193,9 @@ def _write_settings(settings: SettingsDict) -> None:
     # Encrypt sensitive data before writing
     settings_to_write = settings.copy()
     if "api_key" in settings_to_write:
-        settings_to_write["api_key"] = _encrypt_api_key(str(settings_to_write["api_key"]))
+        settings_to_write["api_key"] = _encrypt_api_key(
+            str(settings_to_write["api_key"])
+        )
 
     with open(config_file, "w", encoding="utf-8") as f:
         json.dump(settings_to_write, f, indent=2)
@@ -231,24 +238,33 @@ def load_settings() -> SettingsDict:
             loaded = json.load(f)
 
         if not isinstance(loaded, dict):
-            raise ValueError("Settings file must contain a JSON object")
+            print(
+                "Warning: Invalid settings file format - expected JSON object, using defaults"
+            )
+            return DEFAULT_SETTINGS.copy()
 
-        normalized, changed = _normalize_settings(loaded)
+        try:
+            normalized, changed = _normalize_settings(loaded)
+        except (ValueError, TypeError, KeyError) as e:
+            print(f"Warning: Settings validation failed: {e}, using defaults")
+            return DEFAULT_SETTINGS.copy()
 
         if changed:
             try:
                 _write_settings(normalized)
-            except (OSError, PermissionError) as write_error:
+            except (OSError, PermissionError, IOError) as write_error:
                 print(f"Warning: Could not update settings file: {write_error}")
 
         return normalized
 
-    except (OSError, PermissionError) as e:
-        print(f"Failed to read settings file: {e}")
+    except (OSError, PermissionError, IOError) as e:
+        print(f"Warning: Could not access settings file: {e}")
     except json.JSONDecodeError as e:
-        print(f"Invalid JSON in settings file: {e}")
+        print(f"Warning: Settings file contains invalid JSON: {e}")
+    except UnicodeDecodeError as e:
+        print(f"Warning: Settings file encoding issue: {e}")
     except Exception as e:
-        print(f"Unexpected error loading settings: {e}")
+        print(f"Warning: Unexpected error loading settings: {e}")
 
     return DEFAULT_SETTINGS.copy()
 
@@ -273,15 +289,26 @@ def store_settings(
             "model_version": model_version,
         }
 
-        normalized, _ = _normalize_settings(provided_settings)
+        try:
+            normalized, _ = _normalize_settings(provided_settings)
+        except (ValueError, TypeError, KeyError) as e:
+            print(f"Warning: Settings validation failed: {e}")
+            raise ValueError(f"Invalid settings provided: {e}")
+
         _write_settings(normalized)
 
-    except (OSError, PermissionError) as e:
-        print(f"Failed to store settings: {e}")
-    except (TypeError, ValueError) as e:
-        print(f"Invalid data for JSON encoding: {e}")
+    except (OSError, PermissionError, IOError) as e:
+        print(f"Warning: Could not write settings file: {e}")
+        raise IOError(f"Failed to save settings: {e}")
+    except json.JSONDecodeError as e:
+        print(f"Warning: JSON encoding failed: {e}")
+        raise ValueError(f"Settings data could not be encoded as JSON: {e}")
+    except UnicodeEncodeError as e:
+        print(f"Warning: Text encoding issue: {e}")
+        raise ValueError(f"Settings contain invalid characters: {e}")
     except Exception as e:
-        print(f"Unexpected error storing settings: {e}")
+        print(f"Warning: Unexpected error storing settings: {e}")
+        raise RuntimeError(f"Unexpected error while saving settings: {e}")
 
 
 def _expand_and_normalize_path(path: str) -> str:

@@ -7,6 +7,7 @@ Handles all user interactions and UI events
 """
 
 import os
+import threading
 
 from gi.repository import Gtk, GLib
 
@@ -28,9 +29,12 @@ class DreamPrompterEventHandler:
         self.drawable = drawable
         self.ui.event_handler = self
 
+        # Thread lock for UI state synchronization
+        self._ui_state_lock = threading.Lock()
+
         self.threads = DreamPrompterThreads(ui, image, drawable)
         self.threads.set_callbacks(
-            {"on_success": self.close_on_success, "on_error": self.show_error}
+            {"on_success": self.close_on_success, "on_error": self.show_async_error}
         )
 
         settings = load_settings()
@@ -55,8 +59,44 @@ class DreamPrompterEventHandler:
         GLib.idle_add(after_init)
 
     def close_on_success(self):
-        """Close dialog on successful completion"""
-        self.dialog.response(Gtk.ResponseType.OK)
+        """Handle successful completion - show success message since dialog is already closed"""
+        success_msg = _("Image generation completed successfully!")
+        dialog = Gtk.MessageDialog(
+            parent=None,  # No parent since main dialog is closed
+            modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text=success_msg,
+        )
+        dialog.run()
+        dialog.destroy()
+
+    def show_async_error(self, message):
+        """Show error message for async processing failures - dialog is already closed"""
+        dialog = Gtk.MessageDialog(
+            parent=None,  # No parent since main dialog is closed
+            modal=True,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=message,
+        )
+        dialog.run()
+        dialog.destroy()
+
+    def show_error(self, message):
+        """Show error message in dialog for validation errors during user interaction"""
+        if self.ui.status_label:
+            self.ui.status_label.set_text(message)
+
+        dialog = Gtk.MessageDialog(
+            parent=self.dialog,
+            modal=True,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=message,
+        )
+        dialog.run()
+        dialog.destroy()
 
     def connect_all_signals(self):
         """Connect all UI signals to handlers"""
@@ -114,8 +154,9 @@ class DreamPrompterEventHandler:
 
     def on_clear_files(self, _button):
         """Clear selected files"""
-        self.ui.selected_files.clear()
-        self.ui.update_files_display()
+        with self._ui_state_lock:
+            self.ui.selected_files.clear()
+            GLib.idle_add(self.ui.update_files_display)
 
     def get_selected_model_version(self) -> str:
         """Return the currently selected Replicate model version."""
@@ -180,6 +221,8 @@ class DreamPrompterEventHandler:
         if self.ui.status_label:
             self.ui.status_label.set_text(_("Initializing Replicate request..."))
 
+        # Start processing and respond OK immediately to unblock GIMP
+        # Success/failure will be handled asynchronously
         if mode == "edit":
             self.threads.start_edit_thread(
                 api_key,
@@ -195,30 +238,43 @@ class DreamPrompterEventHandler:
                 model_version,
             )
 
+        # Respond immediately to unblock GIMP interface
+        # Processing continues asynchronously
+        self.dialog.response(Gtk.ResponseType.OK)
+
     def on_mode_changed(self, radio_button):
         """Handle mode selection changes"""
         if not self.ui.edit_mode_radio:
             return
 
-        if self.ui.edit_mode_radio.get_active():
-            if len(self.ui.selected_files) > 2:
-                self.ui.selected_files = self.ui.selected_files[:2]
-                self.ui.update_files_display()
-                print(_("Reduced to 2 reference images for edit mode"))
+        with self._ui_state_lock:
+            if self.ui.edit_mode_radio.get_active():
+                if len(self.ui.selected_files) > 2:
+                    self.ui.selected_files = self.ui.selected_files[:2]
+                    GLib.idle_add(self.ui.update_files_display)
+                    print(_("Reduced to 2 reference images for edit mode"))
 
-            if self.ui.generate_btn:
-                self.ui.generate_btn.set_label(_("Generate Edit"))
-            if self.ui.images_help_label:
-                self.ui.images_help_label.set_markup(
-                    f"<small>{_('Select up to 2 additional images')}</small>"
-                )
-        else:
-            if self.ui.generate_btn:
-                self.ui.generate_btn.set_label(_("Generate Image"))
-            if self.ui.images_help_label:
-                self.ui.images_help_label.set_markup(
-                    f"<small>{_('Select up to 3 additional images')}</small>"
-                )
+                if self.ui.generate_btn:
+                    GLib.idle_add(
+                        lambda: self.ui.generate_btn.set_label(_("Generate Edit"))
+                    )
+                if self.ui.images_help_label:
+                    GLib.idle_add(
+                        lambda: self.ui.images_help_label.set_markup(
+                            f"<small>{_('Select up to 2 additional images')}</small>"
+                        )
+                    )
+            else:
+                if self.ui.generate_btn:
+                    GLib.idle_add(
+                        lambda: self.ui.generate_btn.set_label(_("Generate Image"))
+                    )
+                if self.ui.images_help_label:
+                    GLib.idle_add(
+                        lambda: self.ui.images_help_label.set_markup(
+                            f"<small>{_('Select up to 3 additional images')}</small>"
+                        )
+                    )
 
         self.update_generate_button_state()
 
@@ -228,9 +284,10 @@ class DreamPrompterEventHandler:
 
     def on_remove_file(self, _button, file_path):
         """Remove a specific file from selection"""
-        if file_path in self.ui.selected_files:
-            self.ui.selected_files.remove(file_path)
-            self.ui.update_files_display()
+        with self._ui_state_lock:
+            if file_path in self.ui.selected_files:
+                self.ui.selected_files.remove(file_path)
+                GLib.idle_add(self.ui.update_files_display)
 
     def on_select_files(self, _button):
         """Open file chooser for reference images"""
@@ -263,23 +320,24 @@ class DreamPrompterEventHandler:
             else:
                 max_total_files = 3
 
-            max_new_files = max_total_files - len(self.ui.selected_files)
-            if max_new_files > 0:
-                self.ui.selected_files.extend(files[:max_new_files])
-                self.ui.update_files_display()
-            elif files:
-                if current_mode == "edit":
-                    print(
-                        _(
-                            "Cannot add {count} files. Maximum 2 reference images allowed in edit mode."
-                        ).format(count=len(files))
-                    )
-                else:
-                    print(
-                        _(
-                            "Cannot add {count} files. Maximum 3 reference images allowed."
-                        ).format(count=len(files))
-                    )
+            with self._ui_state_lock:
+                max_new_files = max_total_files - len(self.ui.selected_files)
+                if max_new_files > 0:
+                    self.ui.selected_files.extend(files[:max_new_files])
+                    GLib.idle_add(self.ui.update_files_display)
+                elif files:
+                    if current_mode == "edit":
+                        print(
+                            _(
+                                "Cannot add {count} files. Maximum 2 reference images allowed in edit mode."
+                            ).format(count=len(files))
+                        )
+                    else:
+                        print(
+                            _(
+                                "Cannot add {count} files. Maximum 3 reference images allowed."
+                            ).format(count=len(files))
+                        )
 
         dialog.destroy()
 
@@ -304,21 +362,6 @@ class DreamPrompterEventHandler:
                 )
             )
             button.set_tooltip_text(_("Show API key"))
-
-    def show_error(self, message):
-        """Show error message and enable interface"""
-        if self.ui.status_label:
-            self.ui.status_label.set_text(message)
-
-        dialog = Gtk.MessageDialog(
-            parent=self.dialog,
-            modal=True,
-            message_type=Gtk.MessageType.ERROR,
-            buttons=Gtk.ButtonsType.OK,
-            text=message,
-        )
-        dialog.run()
-        dialog.destroy()
 
     def update_generate_button_state(self):
         """Update generate button sensitivity based on input state"""

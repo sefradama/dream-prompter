@@ -11,9 +11,8 @@ import tempfile
 
 from gi.repository import GdkPixbuf, Gimp, Gio
 
+from constants import MAX_LAYER_NAME_LENGTH
 from i18n import _
-
-MAX_LAYER_NAME_LENGTH = 64
 
 
 def create_edit_layer(image, drawable, pixbuf, layer_name):
@@ -160,6 +159,7 @@ def export_current_region_to_bytes(image):
     try:
         bounds = get_selection_bounds(image)
         if not bounds:
+            # Cannot get selection bounds, fallback to full image export
             return export_gimp_image_to_bytes(image)
 
         x, y, width, height = bounds
@@ -195,13 +195,19 @@ def export_current_region_to_bytes(image):
         print(f"Error exporting current region: {e}")
         return None
     finally:
+        # Ensure cleanup happens even with early returns
         if duplicate:
-            duplicate.delete()
+            try:
+                duplicate.delete()
+            except Exception as cleanup_error:
+                print(f"Warning: Failed to cleanup duplicate image: {cleanup_error}")
         if temp_path:
             try:
                 os.remove(temp_path)
-            except Exception:
-                pass
+            except Exception as cleanup_error:
+                print(
+                    f"Warning: Failed to cleanup temp file {temp_path}: {cleanup_error}"
+                )
 
 
 def export_gimp_image_to_bytes(image):

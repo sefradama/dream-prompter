@@ -16,32 +16,37 @@ from urllib import request as urlrequest
 from gi.repository import GdkPixbuf, Gimp
 
 import integrator
+from constants import (
+    ENV_TOKEN_VAR,
+    MAX_DOWNLOAD_SIZE_MB,
+    MAX_FILE_SIZE_MB,
+    MAX_REFERENCE_IMAGES_EDIT,
+    MAX_REFERENCE_IMAGES_GENERATE,
+    PROGRESS_COMPLETE,
+    PROGRESS_DOWNLOAD,
+    PROGRESS_PREPARE,
+    PROGRESS_PROCESS,
+    PROGRESS_UPLOAD,
+    SUPPORTED_MIME_TYPES,
+    VALIDATION_CHUNK_SIZE,
+    VALIDATION_HEADER_SIZE,
+    VALIDATION_MAX_CHUNKS,
+)
 from i18n import _
-
-MAX_FILE_SIZE_MB = 7
-MAX_REFERENCE_IMAGES_EDIT = 2
-MAX_REFERENCE_IMAGES_GENERATE = 3
-PROGRESS_COMPLETE = 1.0
-PROGRESS_DOWNLOAD = 0.9
-PROGRESS_PREPARE = 0.1
-PROGRESS_PROCESS = 0.7
-PROGRESS_UPLOAD = 0.5
-SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
-ENV_TOKEN_VAR = "REPLICATE_API_TOKEN"
 
 try:
     import replicate
     from replicate.exceptions import ReplicateError
 
     REPLICATE_AVAILABLE = True
-except ImportError as import_error:
+except ImportError:
     replicate = None  # type: ignore[assignment]
     ReplicateError = RuntimeError  # type: ignore[assignment]
     REPLICATE_AVAILABLE = False
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("⚠️  DREAM PROMPTER SETUP REQUIRED")
-    print("="*60)
+    print("=" * 60)
     print("The 'replicate' package is not installed.")
     print("")
     print("To fix this issue, run one of the following commands:")
@@ -53,10 +58,10 @@ except ImportError as import_error:
     print("    pip install --user replicate")
     print("")
     print("  Or with specific Python version:")
-    print(f"    python -m pip install replicate")
+    print("    python -m pip install replicate")
     print("")
     print("After installation, restart GIMP and try again.")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 class ReplicateAPI:
@@ -93,6 +98,7 @@ class ReplicateAPI:
         prompt: str,
         reference_images: Optional[List[str]] = None,
         progress_callback: Optional[Callable[[str, Optional[float]], bool]] = None,
+        stream_callback: Optional[Callable[[str], bool]] = None,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
         """
         Edit an image from a text prompt using Replicate.
@@ -104,6 +110,8 @@ class ReplicateAPI:
             progress_callback (callable, optional): Progress callback function.
                 Called with (message: str, percentage: float | None).
                 Should return True to continue, False to cancel.
+            stream_callback (callable, optional): Streaming callback function for real-time updates.
+                Called with (message: str). Should return True to continue, False to cancel.
 
         Returns:
             tuple: (GdkPixbuf.Pixbuf | None, str | None)
@@ -147,7 +155,13 @@ class ReplicateAPI:
             ):
                 return None, _("Operation cancelled")
 
-            response = self.client.run(self.model_version, input=payload)
+            def status_callback(message: str) -> bool:
+                """Stream status updates to UI"""
+                if stream_callback:
+                    return stream_callback(message)
+                return True
+
+            response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
                 _("Collecting Replicate edit output..."), PROGRESS_DOWNLOAD
@@ -171,6 +185,7 @@ class ReplicateAPI:
         prompt: str,
         reference_images: Optional[List[str]] = None,
         progress_callback: Optional[Callable[[str, Optional[float]], bool]] = None,
+        stream_callback: Optional[Callable[[str], bool]] = None,
     ) -> Tuple[Optional[GdkPixbuf.Pixbuf], Optional[str]]:
         """
         Generate a new image from a text prompt using Replicate.
@@ -181,6 +196,8 @@ class ReplicateAPI:
             progress_callback (callable, optional): Progress callback function.
                 Called with (message: str, percentage: float | None).
                 Should return True to continue, False to cancel.
+            stream_callback (callable, optional): Streaming callback function for real-time updates.
+                Called with (message: str). Should return True to continue, False to cancel.
 
         Returns:
             tuple: (GdkPixbuf.Pixbuf | None, str | None)
@@ -207,7 +224,13 @@ class ReplicateAPI:
             ):
                 return None, _("Operation cancelled")
 
-            response = self.client.run(self.model_version, input=payload)
+            def status_callback(message: str) -> bool:
+                """Stream status updates to UI"""
+                if stream_callback:
+                    return stream_callback(message)
+                return True
+
+            response = self._run_streaming_prediction(payload, status_callback)
 
             if progress_callback and not progress_callback(
                 _("Collecting Replicate generation output..."), PROGRESS_DOWNLOAD
@@ -225,6 +248,52 @@ class ReplicateAPI:
             return None, _("Replicate API error: {error}").format(error=str(e))
         except Exception as e:
             return None, _("Unexpected error: {error}").format(error=str(e))
+
+    def _run_streaming_prediction(
+        self, payload: Dict[str, Any], status_callback: Callable[[str], bool]
+    ) -> Any:
+        """
+        Run a Replicate prediction with streaming status updates.
+
+        Args:
+            payload: Input payload for the prediction
+            status_callback: Callback for streaming status updates.
+                Called with (message: str). Should return True to continue, False to cancel.
+
+        Returns:
+            The prediction output or None if failed/cancelled
+        """
+        try:
+            prediction = self.client.predictions.create(
+                version=self.model_version, input=payload, stream=True
+            )
+
+            # Stream the prediction status updates
+            for event in prediction.stream():
+                # Send status updates to UI - different models may send different events
+                if hasattr(event, "data") and event.data:
+                    if event.data == "starting":
+                        if not status_callback(_("Initializing prediction...")):
+                            prediction.cancel()
+                            return None
+                    elif event.data == "processing":
+                        if not status_callback(_("Processing image...")):
+                            prediction.cancel()
+                            return None
+                    elif event.data == "succeeded":
+                        if not status_callback(_("Prediction completed successfully")):
+                            return None
+
+            # Wait for and return the final result
+            prediction.wait()
+            return prediction.output
+
+        except ReplicateError:
+            # Let the caller handle the error
+            raise
+        except Exception:
+            # Let the caller handle the error
+            raise
 
     def _add_reference_images(
         self,
@@ -290,14 +359,12 @@ class ReplicateAPI:
 
         try:
             file_size = os.path.getsize(img_path)
-            if file_size > max_size_mb * 1024 * 1024:
+            max_bytes = max_size_mb * 1024 * 1024
+            if file_size > max_bytes:
                 print(
                     f"Warning: Image {img_path} is {file_size / (1024 * 1024):.1f} MB, exceeds {max_size_mb} MB limit. Skipping."
                 )
                 return None, False
-
-            with open(img_path, "rb") as img_file:
-                image_data = img_file.read()
 
             # Step 1: MIME type validation
             mime_type, encoding = mimetypes.guess_type(img_path)
@@ -307,12 +374,30 @@ class ReplicateAPI:
                 )
                 return None, False
 
-            # Step 2: Content validation - attempt to load as actual image
-            # This prevents uploading files with fake extensions or malicious content
-            if not self._validate_image_content(image_data):
+            # Step 2: Stream-based content validation to avoid loading entire file into memory
+            if not self._validate_image_file_streaming(img_path):
                 print(
                     f"Warning: {img_path} is not a valid image file or contains corrupted data. Skipping."
                 )
+                return None, False
+
+            # Step 3: Memory-efficient loading - load file in chunks to avoid memory issues
+            try:
+                # Load in 1MB chunks to be memory efficient
+                image_data = b""
+                chunk_size = 1024 * 1024  # 1MB chunks
+                with open(img_path, "rb") as img_file:
+                    while True:
+                        chunk = img_file.read(chunk_size)
+                        if not chunk:
+                            break
+                        image_data += chunk
+                        # Safety check: shouldn't exceed size we already validated above
+                        if len(image_data) > max_bytes:
+                            print("Warning: Image loading exceeded expected size limit")
+                            return None, False
+            except MemoryError:
+                print(f"Warning: Insufficient memory to load image {img_path}")
                 return None, False
 
             handle = self._create_file_handle(
@@ -323,6 +408,66 @@ class ReplicateAPI:
         except Exception as e:
             print(f"Warning: Could not load reference image {img_path}: {e}")
             return None, False
+
+    def _validate_image_file_streaming(self, img_path: str) -> bool:
+        """Validate image file without loading entire file into memory.
+
+        Args:
+            img_path: Path to the image file to validate
+
+        Returns:
+            True if the file is a valid image, False otherwise
+        """
+        try:
+            # Read only the first 64KB to validate image headers
+            # This is sufficient for PNG, JPEG, and WebP format detection
+            with open(img_path, "rb") as img_file:
+                header_data = img_file.read(VALIDATION_HEADER_SIZE)
+
+            if not header_data:
+                return False
+
+            # Use a streaming loader to validate the image format and basic structure
+            loader = GdkPixbuf.PixbufLoader()
+            loader.write(header_data)
+
+            # Try to get pixbuf info early (may work for headers of some formats)
+            try:
+                pixbuf = loader.get_pixbuf()
+                if pixbuf:
+                    # We got pixbuf info from header, do basic validation
+                    width = pixbuf.get_width()
+                    height = pixbuf.get_height()
+                    if width <= 0 or height <= 0 or width > 65535 or height > 65535:
+                        loader.close()
+                        return False
+                    loader.close()
+                    return True
+            except Exception:
+                # Header-only validation failed, try partial load
+                pass
+
+            # For formats that need more data, close the loader and try the old method
+            # but with a limit to prevent excessive memory usage
+            loader.close()
+
+            # Fallback: read in smaller chunks and validate
+            image_data = b""
+            chunk_count = 0
+
+            with open(img_path, "rb") as img_file:
+                while chunk_count < VALIDATION_MAX_CHUNKS:
+                    chunk = img_file.read(VALIDATION_CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    image_data += chunk
+                    chunk_count += 1
+
+            # Validate the smaller sample
+            return self._validate_image_content(image_data)
+
+        except (OSError, IOError, MemoryError):
+            return False
 
     def _validate_image_content(self, image_bytes: bytes) -> bool:
         """Validate that provided bytes are actually a loadable image.
@@ -437,7 +582,9 @@ class ReplicateAPI:
 
         return None
 
-    def _download_image(self, url: str, max_size_bytes: int = 50 * 1024 * 1024) -> Optional[bytes]:
+    def _download_image(
+        self, url: str, max_size_bytes: int = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024
+    ) -> Optional[bytes]:
         """Download image bytes from a remote URL with security validation.
 
         Args:
@@ -454,14 +601,16 @@ class ReplicateAPI:
 
         try:
             parsed = urlparse(url)
-            if not parsed.scheme or not parsed.scheme.lower() in ("http", "https"):
+            if not parsed.scheme or parsed.scheme.lower() not in ("http", "https"):
                 print(f"Warning: Invalid URL scheme: {url}")
                 return None
 
             domain = parsed.netloc.lower()
             # Allow main domain and subdomains of trusted domains
-            is_trusted = any(domain == trusted or domain.endswith("." + trusted)
-                           for trusted in TRUSTED_DOMAINS)
+            is_trusted = any(
+                domain == trusted or domain.endswith("." + trusted)
+                for trusted in TRUSTED_DOMAINS
+            )
 
             if not is_trusted:
                 print(f"Warning: Attempted download from untrusted domain: {domain}")
@@ -470,8 +619,8 @@ class ReplicateAPI:
             # Use timeout to prevent hanging connections
             with urlrequest.urlopen(url, timeout=30) as response:
                 # Check content type for security
-                content_type = response.headers.get('content-type', '').lower()
-                if not content_type.startswith('image/'):
+                content_type = response.headers.get("content-type", "").lower()
+                if not content_type.startswith("image/"):
                     print(f"Warning: Non-image content-type: {content_type}")
                     return None
 
@@ -483,7 +632,9 @@ class ReplicateAPI:
                         break
                     downloaded_data += chunk
                     if len(downloaded_data) > max_size_bytes:
-                        print(f"Warning: Download size exceeded limit ({max_size_bytes} bytes)")
+                        print(
+                            f"Warning: Download size exceeded limit ({max_size_bytes} bytes)"
+                        )
                         return None
 
                 return downloaded_data

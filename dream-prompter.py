@@ -76,9 +76,13 @@ class DreamPrompter(Gimp.PlugIn):
                 dialog = DreamPrompterDialog(procedure, image, drawable)
                 dialog.show_all()
 
+                # Run dialog and immediately close it when Generate is clicked
+                # This prevents the entire GIMP interface from being blocked during AI processing
                 response = dialog.run()
                 dialog.destroy()
 
+                # For OK response, processing has already started in the background
+                # We return immediately so GIMP isn't blocked
                 if response == Gtk.ResponseType.OK:
                     return procedure.new_return_values(
                         Gimp.PDBStatusType.SUCCESS, GLib.Error()

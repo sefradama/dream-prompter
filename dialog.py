@@ -76,7 +76,12 @@ class DreamPrompterDialog(GimpUi.Dialog):
         """Load settings from config file"""
         try:
             settings = load_settings()
+        except Exception as e:
+            # ImportError, IOError, JSON parsing errors, etc.
+            print(f"Warning: Failed to load settings from disk: {e}. Using defaults.")
+            settings = {}
 
+        try:
             if settings.get("api_key") and self.ui.api_key_entry:
                 self.ui.api_key_entry.set_text(str(settings["api_key"]))
 
@@ -104,9 +109,11 @@ class DreamPrompterDialog(GimpUi.Dialog):
                     self.events.get_selected_model_version()
                 except Exception as error:
                     print(f"Error syncing model version: {error}")
-
         except Exception as e:
-            print(f"Error loading settings: {e}")
+            print(
+                f"Error applying loaded settings to UI: {e}. Dialog may not function correctly."
+            )
+            raise RuntimeError(f"Failed to initialize dialog settings: {e}") from e
 
     def _set_initial_mode(self):
         """Set initial mode based on available image/drawable"""

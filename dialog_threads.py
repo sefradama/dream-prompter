@@ -17,6 +17,45 @@ from dialog_gtk import DreamPrompterUI
 from i18n import _
 
 
+class ThreadSafeState:
+    """Thread-safe wrapper for shared state variables"""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._processing = False
+        self._cancel_requested = False
+
+    def set_processing(self, value: bool) -> None:
+        """Thread-safe set processing state"""
+        with self._lock:
+            self._processing = value
+
+    def is_processing(self) -> bool:
+        """Thread-safe get processing state"""
+        with self._lock:
+            return self._processing
+
+    def request_cancel(self) -> None:
+        """Thread-safe cancel request"""
+        with self._lock:
+            self._cancel_requested = True
+
+    def is_cancel_requested(self) -> bool:
+        """Thread-safe check cancel state"""
+        with self._lock:
+            return self._cancel_requested
+
+    def reset_cancel(self) -> None:
+        """Thread-safe reset cancel state"""
+        with self._lock:
+            self._cancel_requested = False
+
+    def can_start_processing(self) -> bool:
+        """Thread-safe check if processing can start"""
+        with self._lock:
+            return not self._processing and not self._cancel_requested
+
+
 class DreamPrompterThreads:
     """Handles all background threading operations"""
 
@@ -40,21 +79,21 @@ class DreamPrompterThreads:
         self.ui = ui
         self.image = image
         self.drawable = drawable
+        self._state = ThreadSafeState()
         self._callbacks: Dict[str, Callable] = {}
-        self._processing: bool = False
-        self._cancel_requested: bool = False
         self._current_thread: Optional[threading.Thread] = None
+        self._thread_lock = threading.Lock()
 
         self._model_version: Optional[str] = None
 
     def cancel_processing(self) -> None:
         """Request cancellation of current processing"""
-        self._cancel_requested = True
+        self._state.request_cancel()
         self.ui.update_status(_("Cancelling..."))
 
     def is_processing(self) -> bool:
         """Check if image processing is currently running"""
-        return self._processing
+        return self._state.is_processing()
 
     def set_callbacks(self, callbacks: Dict[str, Callable]) -> None:
         """
@@ -108,7 +147,7 @@ class DreamPrompterThreads:
             prompt: Text prompt for image generation
             reference_images: Optional list of reference image paths
         """
-        if not self.ui or self._processing:
+        if not self.ui or not self._state.can_start_processing():
             return
 
         if not api_key or not api_key.strip():
@@ -126,16 +165,17 @@ class DreamPrompterThreads:
 
         self._model_version = resolved_model
 
-        self._processing = True
-        self._cancel_requested = False
+        self._state.set_processing(True)
+        self._state.reset_cancel()
         self.ui.set_ui_enabled(False)
 
-        self._current_thread = threading.Thread(
-            target=self._generate_image_worker,
-            args=(api_key, prompt, resolved_model, reference_images or []),
-        )
-        self._current_thread.daemon = True
-        self._current_thread.start()
+        with self._thread_lock:
+            self._current_thread = threading.Thread(
+                target=self._generate_image_worker,
+                args=(api_key, prompt, resolved_model, reference_images or []),
+            )
+            self._current_thread.daemon = True
+            self._current_thread.start()
 
     def start_edit_thread(
         self,
@@ -152,7 +192,7 @@ class DreamPrompterThreads:
             prompt: Text prompt for image editing
             reference_images: Optional list of reference image paths
         """
-        if not self.ui or self._processing:
+        if not self.ui or not self._state.can_start_processing():
             return
 
         if not self.drawable:
@@ -178,16 +218,17 @@ class DreamPrompterThreads:
 
         self._model_version = resolved_model
 
-        self._processing = True
-        self._cancel_requested = False
+        self._state.set_processing(True)
+        self._state.reset_cancel()
         self.ui.set_ui_enabled(False)
 
-        self._current_thread = threading.Thread(
-            target=self._edit_image_worker,
-            args=(api_key, prompt, resolved_model, reference_images or []),
-        )
-        self._current_thread.daemon = True
-        self._current_thread.start()
+        with self._thread_lock:
+            self._current_thread = threading.Thread(
+                target=self._edit_image_worker,
+                args=(api_key, prompt, resolved_model, reference_images or []),
+            )
+            self._current_thread.daemon = True
+            self._current_thread.start()
 
     def _generate_image_worker(
         self,
@@ -206,7 +247,7 @@ class DreamPrompterThreads:
             reference_images: List of reference image paths
         """
         try:
-            if self._cancel_requested:
+            if self._state.is_cancel_requested():
                 GLib.idle_add(self._handle_cancelled)
                 return
 
@@ -216,18 +257,26 @@ class DreamPrompterThreads:
                 message: str, percentage: Optional[float] = None
             ) -> bool:
                 """Progress callback for API operations"""
-                if self._cancel_requested:
+                if self._state.is_cancel_requested():
                     return False
                 GLib.idle_add(self.ui.update_status, message, percentage)
+                return True
+
+            def stream_callback(message: str) -> bool:
+                """Stream status callback for real-time updates"""
+                if self._state.is_cancel_requested():
+                    return False
+                GLib.idle_add(self.ui.update_status, message)
                 return True
 
             pixbuf, error_msg = api.generate_image(
                 prompt=prompt,
                 reference_images=reference_images,
                 progress_callback=progress_callback,
+                stream_callback=stream_callback,
             )
 
-            if self._cancel_requested:
+            if self._state.is_cancel_requested():
                 GLib.idle_add(self._handle_cancelled)
                 return
 
@@ -241,9 +290,30 @@ class DreamPrompterThreads:
 
             GLib.idle_add(self._handle_generated_image, pixbuf, prompt)
 
-        except (ImportError, ValueError) as e:
-            GLib.idle_add(self._handle_error, str(e))
+        except ImportError:
+            # Missing dependencies (replicate package) - user actionable
+            GLib.idle_add(
+                self._handle_error,
+                _(
+                    "Missing required package. Please install replicate: pip install replicate"
+                ),
+            )
+        except (ValueError, TypeError) as e:
+            # Data validation errors - likely user input issues
+            GLib.idle_add(
+                self._handle_error,
+                _("Invalid input data: {error}").format(error=str(e)),
+            )
+        except (ConnectionError, TimeoutError) as e:
+            # Network issues - transient problems
+            GLib.idle_add(
+                self._handle_error,
+                _("Connection failed. Check your internet and API key: {error}").format(
+                    error=str(e)
+                ),
+            )
         except Exception as e:
+            # Unexpected errors - technical issues
             error_msg = _("Unexpected error during image generation: {error}").format(
                 error=str(e)
             )
@@ -266,7 +336,7 @@ class DreamPrompterThreads:
             reference_images: List of reference image paths
         """
         try:
-            if self._cancel_requested:
+            if self._state.is_cancel_requested():
                 GLib.idle_add(self._handle_cancelled)
                 return
 
@@ -280,9 +350,16 @@ class DreamPrompterThreads:
                 message: str, percentage: Optional[float] = None
             ) -> bool:
                 """Progress callback for API operations"""
-                if self._cancel_requested:
+                if self._state.is_cancel_requested():
                     return False
                 GLib.idle_add(self.ui.update_status, message, percentage)
+                return True
+
+            def stream_callback(message: str) -> bool:
+                """Stream status callback for real-time updates"""
+                if self._state.is_cancel_requested():
+                    return False
+                GLib.idle_add(self.ui.update_status, message)
                 return True
 
             pixbuf, error_msg = api.edit_image(
@@ -290,9 +367,10 @@ class DreamPrompterThreads:
                 prompt=prompt,
                 reference_images=reference_images,
                 progress_callback=progress_callback,
+                stream_callback=stream_callback,
             )
 
-            if self._cancel_requested:
+            if self._state.is_cancel_requested():
                 GLib.idle_add(self._handle_cancelled)
                 return
 
@@ -307,9 +385,30 @@ class DreamPrompterThreads:
             layer_name = self._generate_layer_name(prompt)
             GLib.idle_add(self._handle_edited_image, pixbuf, layer_name)
 
-        except (ImportError, ValueError) as e:
-            GLib.idle_add(self._handle_error, str(e))
+        except ImportError:
+            # Missing dependencies (replicate package) - user actionable
+            GLib.idle_add(
+                self._handle_error,
+                _(
+                    "Missing required package. Please install replicate: pip install replicate"
+                ),
+            )
+        except (ValueError, TypeError) as e:
+            # Data validation errors - likely user input issues
+            GLib.idle_add(
+                self._handle_error,
+                _("Invalid input data: {error}").format(error=str(e)),
+            )
+        except (ConnectionError, TimeoutError) as e:
+            # Network issues - transient problems
+            GLib.idle_add(
+                self._handle_error,
+                _("Connection failed. Check your internet and API key: {error}").format(
+                    error=str(e)
+                ),
+            )
         except Exception as e:
+            # Unexpected errors - technical issues
             error_msg = _("Unexpected error during image editing: {error}").format(
                 error=str(e)
             )
@@ -339,8 +438,9 @@ class DreamPrompterThreads:
 
     def _handle_cancelled(self) -> None:
         """Handle cancelled operation"""
-        self._processing = False
-        self._current_thread = None
+        self._state.set_processing(False)
+        with self._thread_lock:
+            self._current_thread = None
         self.ui.update_status(_("Operation cancelled"))
         self.ui.set_ui_enabled(True)
 
@@ -351,8 +451,9 @@ class DreamPrompterThreads:
         Args:
             error_message: The error message to display
         """
-        self._processing = False
-        self._current_thread = None
+        self._state.set_processing(False)
+        with self._thread_lock:
+            self._current_thread = None
         self.ui.set_ui_enabled(True)
 
         if self._callbacks.get("on_error"):
@@ -408,8 +509,9 @@ class DreamPrompterThreads:
 
     def _handle_success(self) -> None:
         """Handle successful processing"""
-        self._processing = False
-        self._current_thread = None
+        self._state.set_processing(False)
+        with self._thread_lock:
+            self._current_thread = None
         self.ui.set_ui_enabled(True)
 
         if self._callbacks.get("on_success"):
