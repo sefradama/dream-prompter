@@ -8,10 +8,10 @@ exclude = ["stubs"]
 
 [project]
 name = "dream-prompter"
-version = "1.0.3"
+version = "1.1.1"
 description = "AI-powered image creation/editing with selectable Replicate models"
 authors = [
-    {name = "Josh Ellithorpe"}
+    {name = "Josh Ellithorpe, sefra dama"}
 ]
 dependencies = [
     "replicate",
