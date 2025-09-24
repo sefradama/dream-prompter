@@ -20,6 +20,7 @@ class StatusProgressUI(IStatusProgress):
     """Handles status display and progress indicator UI components"""
 
     def __init__(self):
+        super().__init__()
         self.status_label = None
         self.progress_bar = None
 

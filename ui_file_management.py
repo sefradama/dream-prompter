@@ -22,6 +22,7 @@ class FileManagementUI(IFileManagement):
     """Handles additional image selection and display UI components"""
 
     def __init__(self):
+        super().__init__()
         self.selected_files = []
         self.file_chooser_btn = None
         self.files_info_label = None
