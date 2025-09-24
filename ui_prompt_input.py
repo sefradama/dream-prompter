@@ -20,6 +20,7 @@ class PromptInputUI(IPromptInput):
     """Handles prompt text input UI components"""
 
     def __init__(self):
+        super().__init__()
         self.prompt_textview = None
         self.prompt_buffer = None
 
