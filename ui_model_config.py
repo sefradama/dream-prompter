@@ -715,6 +715,7 @@ class ModelConfigUI(IModelConfig):
     """Handles API key input and model selection UI components"""
 
     def __init__(self):
+        super().__init__()
         self.api_key_entry = None
         self.toggle_visibility_btn = None
         self.model_combo = None

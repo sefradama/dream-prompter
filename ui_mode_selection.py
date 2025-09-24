@@ -20,6 +20,7 @@ class ModeSelectionUI(IModeSelection):
     """Handles operation mode selection UI components"""
 
     def __init__(self):
+        super().__init__()
         self.edit_mode_radio = None
         self.generate_mode_radio = None
 
