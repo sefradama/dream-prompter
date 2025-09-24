@@ -33,6 +33,7 @@ class DreamPrompterDialog(GimpUi.Dialog):
         self.drawable = drawable
 
         self.set_resizable(True)
+        self.set_default_size(600, 700)
 
         self.ui = DreamPrompterUI()
         self.events = DreamPrompterEventHandler(self, self.ui, image, drawable)

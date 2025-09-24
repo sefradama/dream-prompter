@@ -86,7 +86,14 @@ class DreamPrompterUI:
             status_section = self.status_progress.create_status_section()
             main_box.pack_start(status_section, False, False, 0)
 
-            parent_dialog.get_content_area().add(main_box)
+            scrolled_window = Gtk.ScrolledWindow()
+            scrolled_window.set_policy(
+                Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC
+            )
+            scrolled_window.set_hexpand(True)
+            scrolled_window.set_vexpand(True)
+            scrolled_window.add(main_box)
+            parent_dialog.get_content_area().add(scrolled_window)
 
             # Wire up component references for backward compatibility
             self._wire_component_references()
