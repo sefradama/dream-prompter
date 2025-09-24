@@ -21,6 +21,7 @@ REPLICATE_MODEL_OPTIONS = [
         "google/nano-banana",
         _(
             "Nano Banana",
+        ),
     ),
     (
         "bytedance/seedream-4",
@@ -42,7 +43,9 @@ REPLICATE_MODEL_OPTIONS = [
     ),
     (
         "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
-        _("GFPGAN"),
+        _(
+            "GFPGAN",
+        ),
     ),
 ]
 
