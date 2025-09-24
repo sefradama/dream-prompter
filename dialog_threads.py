@@ -86,13 +86,55 @@ class DreamPrompterThreads:
         self._callbacks: Dict[str, Callable] = {}
         self._current_thread: Optional[threading.Thread] = None
         self._thread_lock = threading.Lock()
+        self._dialog_destroyed = False
 
         self._model_version: Optional[str] = None
+
+    def set_destroyed(self) -> None:
+        """Mark the dialog as destroyed to prevent UI updates"""
+        self._dialog_destroyed = True
+        self.cancel_processing()
+
+    def reset_state_on_error(self) -> None:
+        """
+        Gracefully reset all state after an error occurs.
+        Ensures UI is responsive and ready for retry attempts.
+        """
+        if self._dialog_destroyed:
+            return
+
+        # Reset thread state
+        self._state.set_processing(False)
+        self._state.reset_cancel()
+        with self._thread_lock:
+            if self._current_thread and self._current_thread.is_alive():
+                # Don't join here as it might block, just mark for cleanup
+                self._current_thread = None
+
+        # Reset UI state safely
+        try:
+            if self.ui:
+                self.ui.set_ui_enabled(True)
+                # Clear any error status
+                if hasattr(self.ui, "status_label") and self.ui.status_label:
+                    self.ui.status_label.set_text("")
+                if hasattr(self.ui, "status_progress") and self.ui.status_progress:
+                    self.ui.status_progress.update_status("", None)
+        except Exception as e:
+            # UI may be in inconsistent state, silently ignore
+            print(f"Warning: Could not reset UI state: {e}")
+
+        # Reset model version to last known good state
+        if not self._model_version:
+            self._model_version = ""
 
     def cancel_processing(self) -> None:
         """Request cancellation of current processing"""
         self._state.request_cancel()
-        self.ui.update_status(_("Cancelling..."))
+        try:
+            self.ui.status_progress.update_status(_("Cancelling..."))
+        except Exception:
+            pass  # UI may be destroyed
 
     def is_processing(self) -> bool:
         """Check if image processing is currently running"""
@@ -260,10 +302,12 @@ class DreamPrompterThreads:
                 message: str, percentage: Optional[float] = None
             ) -> bool:
                 """Progress callback for API operations"""
-                if self._state.is_cancel_requested():
+                if self._dialog_destroyed or self._state.is_cancel_requested():
                     return False
                 try:
-                    GLib.idle_add(self.ui.update_status, message, percentage)
+                    GLib.idle_add(
+                        self.ui.status_progress.update_status, message, percentage
+                    )
                 except Exception as e:
                     # UI may be destroyed, silently ignore
                     print(f"Warning: Unable to update UI status: {e}")
@@ -272,10 +316,10 @@ class DreamPrompterThreads:
 
             def stream_callback(message: str) -> bool:
                 """Stream status callback for real-time updates"""
-                if self._state.is_cancel_requested():
+                if self._dialog_destroyed or self._state.is_cancel_requested():
                     return False
                 try:
-                    GLib.idle_add(self.ui.update_status, message)
+                    GLib.idle_add(self.ui.status_progress.update_status, message)
                 except Exception as e:
                     # UI may be destroyed, silently ignore
                     print(f"Warning: Unable to update UI status: {e}")
@@ -331,6 +375,12 @@ class DreamPrompterThreads:
                 error=str(e),
             )
             GLib.idle_add(self._handle_error, error_msg)
+        finally:
+            # Ensure thread state is reset even if exception handling fails
+            if not self._dialog_destroyed:
+                self._state.set_processing(False)
+                with self._thread_lock:
+                    self._current_thread = None
 
     def _edit_image_worker(
         self,
@@ -364,10 +414,12 @@ class DreamPrompterThreads:
                 percentage: Optional[float] = None,
             ) -> bool:
                 """Progress callback for API operations"""
-                if self._state.is_cancel_requested():
+                if self._dialog_destroyed or self._state.is_cancel_requested():
                     return False
                 try:
-                    GLib.idle_add(self.ui.update_status, message, percentage)
+                    GLib.idle_add(
+                        self.ui.status_progress.update_status, message, percentage
+                    )
                 except Exception as e:
                     # UI may be destroyed, silently ignore
                     print(f"Warning: Unable to update UI status: {e}")
@@ -376,10 +428,10 @@ class DreamPrompterThreads:
 
             def stream_callback(message: str) -> bool:
                 """Stream status callback for real-time updates"""
-                if self._state.is_cancel_requested():
+                if self._dialog_destroyed or self._state.is_cancel_requested():
                     return False
                 try:
-                    GLib.idle_add(self.ui.update_status, message)
+                    GLib.idle_add(self.ui.status_progress.update_status, message)
                 except Exception as e:
                     # UI may be destroyed, silently ignore
                     print(f"Warning: Unable to update UI status: {e}")
@@ -437,6 +489,12 @@ class DreamPrompterThreads:
                 error=str(e),
             )
             GLib.idle_add(self._handle_error, error_msg)
+        finally:
+            # Ensure thread state is reset even if exception handling fails
+            if not self._dialog_destroyed:
+                self._state.set_processing(False)
+                with self._thread_lock:
+                    self._current_thread = None
 
     def _generate_layer_name(self, prompt: str) -> str:
         """
@@ -462,11 +520,16 @@ class DreamPrompterThreads:
 
     def _handle_cancelled(self) -> None:
         """Handle cancelled operation"""
+        if self._dialog_destroyed:
+            return
         self._state.set_processing(False)
         with self._thread_lock:
             self._current_thread = None
-        self.ui.update_status(_("Operation cancelled"))
-        self.ui.set_ui_enabled(True)
+        try:
+            self.ui.update_status(_("Operation cancelled"))
+            self.ui.set_ui_enabled(True)
+        except Exception:
+            pass  # UI may be destroyed
 
     def _handle_error(self, error_message: str) -> None:
         """
@@ -475,10 +538,15 @@ class DreamPrompterThreads:
         Args:
             error_message: The error message to display
         """
+        if self._dialog_destroyed:
+            return
         self._state.set_processing(False)
         with self._thread_lock:
             self._current_thread = None
-        self.ui.set_ui_enabled(True)
+        try:
+            self.ui.set_ui_enabled(True)
+        except Exception:
+            pass  # UI may be destroyed
 
         if self._callbacks.get("on_error"):
             self._callbacks["on_error"](error_message)
@@ -491,6 +559,8 @@ class DreamPrompterThreads:
             pixbuf: The generated image data
             prompt: The prompt used for generation
         """
+        if self._dialog_destroyed:
+            return
         try:
             self.ui.update_status(_("Creating GIMP image..."), 0.9)
 
@@ -514,6 +584,8 @@ class DreamPrompterThreads:
             pixbuf: The edited image data
             layer_name: Name for the new layer
         """
+        if self._dialog_destroyed:
+            return
         try:
             self.ui.update_status(_("Adding edit layer..."), 0.9)
 
@@ -536,10 +608,15 @@ class DreamPrompterThreads:
 
     def _handle_success(self) -> None:
         """Handle successful processing"""
+        if self._dialog_destroyed:
+            return
         self._state.set_processing(False)
         with self._thread_lock:
             self._current_thread = None
-        self.ui.set_ui_enabled(True)
+        try:
+            self.ui.set_ui_enabled(True)
+        except Exception:
+            pass  # UI may be destroyed
 
         if self._callbacks.get("on_success"):
             self._callbacks["on_success"]()

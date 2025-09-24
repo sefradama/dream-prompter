@@ -1,0 +1,1 @@
+Developing a GIMP plugin to provide integrated AI image generation and editing capabilities using Replicate API.

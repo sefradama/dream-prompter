@@ -97,28 +97,28 @@ class DreamPrompterUI:
     def _wire_component_references(self):
         """Wire component references for backward compatibility"""
         # Model config references
-        self.api_key_entry = self.model_config.api_key_entry
-        self.toggle_visibility_btn = self.model_config.toggle_visibility_btn
-        self.model_combo = self.model_config.model_combo
+        self.api_key_entry = self.model_config.get_api_key_entry()
+        self.toggle_visibility_btn = self.model_config.get_toggle_visibility_btn()
+        self.model_combo = self.model_config.get_model_combo()
 
         # Mode selection references
-        self.edit_mode_radio = self.mode_selection.edit_mode_radio
-        self.generate_mode_radio = self.mode_selection.generate_mode_radio
+        self.edit_mode_radio = self.mode_selection.get_edit_mode_radio()
+        self.generate_mode_radio = self.mode_selection.get_generate_mode_radio()
 
         # Prompt input references
-        self.prompt_textview = self.prompt_input.prompt_textview
-        self.prompt_buffer = self.prompt_input.prompt_buffer
+        self.prompt_textview = self.prompt_input.get_prompt_textview()
+        self.prompt_buffer = self.prompt_input.get_prompt_buffer()
 
         # File management references
-        self.file_chooser_btn = self.file_management.file_chooser_btn
+        self.file_chooser_btn = self.file_management.get_file_chooser_btn()
         self.files_info_label = self.file_management.files_info_label
-        self.clear_files_btn = self.file_management.clear_files_btn
+        self.clear_files_btn = self.file_management.get_clear_files_btn()
         self.files_listbox = self.file_management.files_listbox
         self.images_help_label = self.file_management.images_help_label
 
         # Status progress references
-        self.status_label = self.status_progress.status_label
-        self.progress_bar = self.status_progress.progress_bar
+        self.status_label = self.status_progress.get_status_label()
+        self.progress_bar = self.status_progress.get_progress_bar()
 
     def hide_progress(self):
         """Hide progress display"""

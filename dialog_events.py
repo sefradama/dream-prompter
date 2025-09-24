@@ -37,6 +37,8 @@ class DreamPrompterEventHandler:
             {"on_success": self.close_on_success, "on_error": self.show_async_error},
         )
 
+        self.dialog.connect("destroy", lambda w: self.threads.set_destroyed())
+
         settings = load_settings()
         self._model_version: str = self._determine_initial_model_version(settings)
         if hasattr(self.ui, "set_selected_model_version"):
@@ -106,11 +108,15 @@ class DreamPrompterEventHandler:
 
     def connect_all_signals(self):
         """Connect all UI signals to handlers"""
-        if self.ui.edit_mode_radio:
-            self.ui.edit_mode_radio.connect("toggled", self.on_mode_changed)
-        if self.ui.generate_mode_radio:
-            self.ui.generate_mode_radio.connect("toggled", self.on_mode_changed)
+        # Connect to component signals
+        self.ui.mode_selection.connect("mode_changed", self.on_mode_changed)
+        self.ui.model_config.connect("model_changed", self.on_model_changed)
+        self.ui.model_config.connect("api_key_changed", self.on_api_key_changed)
+        self.ui.prompt_input.connect("prompt_changed", self.on_prompt_changed)
+        self.ui.file_management.connect("files_changed", self.on_files_changed)
+        self.ui.status_progress.connect("status_changed", self.on_status_changed)
 
+        # Connect to widget signals for actions
         if self.ui.toggle_visibility_btn:
             self.ui.toggle_visibility_btn.connect("toggled", self.on_toggle_visibility)
 
@@ -123,11 +129,6 @@ class DreamPrompterEventHandler:
             self.ui.cancel_btn.connect("clicked", self.on_cancel)
         if self.ui.generate_btn:
             self.ui.generate_btn.connect("clicked", self.on_generate)
-
-        if self.ui.prompt_buffer:
-            self.ui.prompt_buffer.connect("changed", self.on_prompt_changed)
-        if self.ui.api_key_entry:
-            self.ui.api_key_entry.connect("changed", self.on_api_key_changed)
 
     def _determine_initial_model_version(self, settings):
         """Resolve the starting model version from settings or environment."""
@@ -161,8 +162,8 @@ class DreamPrompterEventHandler:
     def on_clear_files(self, _button):
         """Clear selected files"""
         with self._ui_state_lock:
-            self.ui.selected_files.clear()
-            GLib.idle_add(self.ui.update_files_display)
+            self.ui.file_management.selected_files.clear()
+            GLib.idle_add(self.ui.file_management.update_files_display)
 
     def get_selected_model_version(self) -> str:
         """Return the currently selected Replicate model version."""
@@ -278,13 +279,10 @@ class DreamPrompterEventHandler:
             error_msg = "Unexpected error during processing: {0}".format(str(e))
             self.show_error(error_msg)
 
-    def on_mode_changed(self, radio_button):
+    def on_mode_changed(self, mode_selection, mode):
         """Handle mode selection changes"""
-        if not self.ui.edit_mode_radio:
-            return
-
         with self._ui_state_lock:
-            if self.ui.edit_mode_radio.get_active():
+            if mode == "edit":
                 if len(self.ui.selected_files) > 2:
                     self.ui.selected_files = self.ui.selected_files[:2]
                     GLib.idle_add(self.ui.update_files_display)
@@ -296,12 +294,12 @@ class DreamPrompterEventHandler:
                     )
                 if self.ui.images_help_label:
                     help_text = "<small>{0}</small>".format(
-                        _("Select up to 3 additional images")
+                        _("Select up to 2 additional images")
                     )
                     GLib.idle_add(
                         lambda: self.ui.images_help_label.set_markup(help_text),
                     )
-                self.ui.set_mode("edit") if hasattr(self.ui, "set_mode") else None
+                self.ui.model_config.set_mode("edit")
             else:
                 if self.ui.generate_btn:
                     GLib.idle_add(
@@ -314,9 +312,24 @@ class DreamPrompterEventHandler:
                     GLib.idle_add(
                         lambda: self.ui.images_help_label.set_markup(help_text),
                     )
-                self.ui.set_mode("generate") if hasattr(self.ui, "set_mode") else None
+                self.ui.model_config.set_mode("generate")
 
         self.update_generate_button_state()
+
+    def on_model_changed(self, model_config, model_version):
+        """Handle model selection changes"""
+        self._model_version = model_version
+        # Update UI if needed
+
+    def on_files_changed(self, file_management):
+        """Handle file selection changes"""
+        # Files display is updated by the component
+        self.update_generate_button_state()
+
+    def on_status_changed(self, status_progress, message, percentage):
+        """Handle status changes"""
+        # Status is updated by the component
+        pass
 
     def on_prompt_changed(self, _buffer):
         """Handle prompt text changes"""
@@ -325,9 +338,10 @@ class DreamPrompterEventHandler:
     def on_remove_file(self, _button, file_path):
         """Remove a specific file from selection"""
         with self._ui_state_lock:
-            if file_path in self.ui.selected_files:
-                self.ui.selected_files.remove(file_path)
-                GLib.idle_add(self.ui.update_files_display)
+            selected_files = self.ui.file_management.get_selected_files()
+            if file_path in selected_files:
+                self.ui.file_management.selected_files.remove(file_path)
+                GLib.idle_add(self.ui.file_management.update_files_display)
 
     def on_select_files(self, _button):
         """Open file chooser for reference images"""
@@ -361,10 +375,11 @@ class DreamPrompterEventHandler:
                 max_total_files = 3
 
             with self._ui_state_lock:
-                max_new_files = max_total_files - len(self.ui.selected_files)
+                selected_files = self.ui.file_management.get_selected_files()
+                max_new_files = max_total_files - len(selected_files)
                 if max_new_files > 0:
-                    self.ui.selected_files.extend(files[:max_new_files])
-                    GLib.idle_add(self.ui.update_files_display)
+                    self.ui.file_management.selected_files.extend(files[:max_new_files])
+                    GLib.idle_add(self.ui.file_management.update_files_display)
                 elif files:
                     if current_mode == "edit":
                         print(

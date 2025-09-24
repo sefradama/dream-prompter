@@ -13,9 +13,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: E402
 
 from i18n import _  # noqa: E402
+from ui_interfaces import IStatusProgress  # noqa: E402
 
 
-class StatusProgressUI:
+class StatusProgressUI(IStatusProgress):
     """Handles status display and progress indicator UI components"""
 
     def __init__(self):
@@ -61,6 +62,8 @@ class StatusProgressUI:
             else:
                 self.progress_bar.pulse()
                 self.progress_bar.set_visible(True)
+
+        self.emit("status_changed", message, percentage or 0.0)
 
     def hide_progress(self):
         """Hide progress display"""

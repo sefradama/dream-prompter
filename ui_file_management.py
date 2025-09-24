@@ -15,9 +15,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango  # noqa: E402
 
 from i18n import _  # noqa: E402
+from ui_interfaces import IFileManagement  # noqa: E402
 
 
-class FileManagementUI:
+class FileManagementUI(IFileManagement):
     """Handles additional image selection and display UI components"""
 
     def __init__(self):
@@ -81,6 +82,7 @@ class FileManagementUI:
             self._update_empty_files_display()
         else:
             self._update_files_with_content()
+        self.emit("files_changed")
 
     def _update_empty_files_display(self):
         """Update display when no files are selected"""

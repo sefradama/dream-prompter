@@ -68,8 +68,7 @@ def _encrypt_api_key(api_key: str) -> str:
         encrypted = fernet.encrypt(api_key.encode())
         return base64.b64encode(encrypted).decode()
     except Exception as e:
-        print(f"Warning: Could not encrypt API key: {e}")
-        return api_key  # Fallback to plain text
+        raise ValueError(f"Failed to encrypt API key: {e}")
 
 
 def _decrypt_api_key(encrypted_key: str) -> str:
@@ -78,24 +77,13 @@ def _decrypt_api_key(encrypted_key: str) -> str:
         return ""
 
     try:
-        # Check if it looks like encrypted (base64) data
-        if (
-            not encrypted_key.replace("+", "")
-            .replace("/", "")
-            .replace("=", "")
-            .isalnum()
-        ):
-            # Not encrypted format, return as-is for backward compatibility
-            return encrypted_key
-
         key = _get_encryption_key()
         fernet = Fernet(key)
         decoded = base64.b64decode(encrypted_key)
         decrypted = fernet.decrypt(decoded)
         return decrypted.decode()
     except (InvalidToken, ValueError, UnicodeDecodeError, Exception) as e:
-        print(f"Warning: Could not decrypt API key, assuming plain text: {e}")
-        return encrypted_key  # Fallback to plain text for backward compatibility
+        raise ValueError(f"Failed to decrypt API key: {e}")
 
 
 def _sanitize_string(value: Any, default: str = "") -> Tuple[str, bool]:

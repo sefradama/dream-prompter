@@ -8,6 +8,7 @@ import binascii
 import io
 import mimetypes
 import os
+import time
 from collections.abc import Iterable
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib import error as urlerror
@@ -283,13 +284,59 @@ class ReplicateAPI:
         except Exception as e:
             return None, _("Unexpected error: {error}").format(error=str(e))
 
+    def _retry_with_backoff(
+        self,
+        func: Callable[[], Any],
+        max_retries: int = 3,
+        backoff_factor: float = 2.0,
+        initial_delay: float = 1.0,
+    ) -> Any:
+        """
+        Retry a function with exponential backoff for transient failures.
+
+        Args:
+            func: Function to retry
+            max_retries: Maximum number of retry attempts
+            backoff_factor: Exponential backoff multiplier
+            initial_delay: Initial delay in seconds
+
+        Returns:
+            Result of the function call
+
+        Raises:
+            The last exception if all retries fail
+        """
+        delay = initial_delay
+
+        for attempt in range(max_retries + 1):
+            try:
+                return func()
+            except (ConnectionError, TimeoutError, OSError):
+                # Transient network errors
+                if attempt < max_retries:
+                    time.sleep(delay)
+                    delay *= backoff_factor
+                else:
+                    raise
+            except ReplicateError as e:
+                # Check if it's a rate limit error (429)
+                if hasattr(e, "status") and e.status == 429:
+                    if attempt < max_retries:
+                        time.sleep(delay)
+                        delay *= backoff_factor
+                    else:
+                        raise
+                else:
+                    # Non-transient error, don't retry
+                    raise
+
     def _run_streaming_prediction(
         self,
         payload: Dict[str, Any],
         status_callback: Callable[[str], bool],
     ) -> Any:
         """
-        Run a Replicate prediction with streaming status updates.
+        Run a Replicate prediction with streaming status updates and retry logic.
 
         Args:
             payload: Input payload for the prediction
@@ -299,7 +346,8 @@ class ReplicateAPI:
         Returns:
             The prediction output or None if failed/cancelled
         """
-        try:
+
+        def create_prediction():
             prediction = self.client.predictions.create(
                 version=self.model_version,
                 input=payload,
@@ -326,6 +374,8 @@ class ReplicateAPI:
             prediction.wait()
             return prediction.output
 
+        try:
+            return self._retry_with_backoff(create_prediction)
         except ReplicateError:
             # Let the caller handle the error
             raise
@@ -363,8 +413,8 @@ class ReplicateAPI:
         Returns:
             GdkPixbuf.Pixbuf: Pixbuf object, or None if conversion failed
         """
+        loader = GdkPixbuf.PixbufLoader()
         try:
-            loader = GdkPixbuf.PixbufLoader()
             loader.write(image_bytes)
             loader.close()
 
@@ -374,6 +424,11 @@ class ReplicateAPI:
         except Exception as e:
             print(f"Error converting bytes to pixbuf: {e}")
             return None
+        finally:
+            try:
+                loader.close()
+            except Exception:
+                pass  # Already closed or failed
 
     def _parse_image_response(
         self,
@@ -471,27 +526,30 @@ class ReplicateAPI:
 
             # Use a streaming loader to validate the image format and basic structure
             loader = GdkPixbuf.PixbufLoader()
-            loader.write(header_data)
-
-            # Try to get pixbuf info early (may work for headers of some formats)
             try:
-                pixbuf = loader.get_pixbuf()
-                if pixbuf:
-                    # We got pixbuf info from header, do basic validation
-                    width = pixbuf.get_width()
-                    height = pixbuf.get_height()
-                    if width <= 0 or height <= 0 or width > 65535 or height > 65535:
-                        loader.close()
-                        return False
-                    loader.close()
-                    return True
-            except Exception:
-                # Header-only validation failed, try partial load
-                pass
+                loader.write(header_data)
 
-            # For formats that need more data, close the loader and try the old method
-            # but with a limit to prevent excessive memory usage
-            loader.close()
+                # Try to get pixbuf info early (may work for headers of some formats)
+                try:
+                    pixbuf = loader.get_pixbuf()
+                    if pixbuf:
+                        # We got pixbuf info from header, do basic validation
+                        width = pixbuf.get_width()
+                        height = pixbuf.get_height()
+                        if width <= 0 or height <= 0 or width > 65535 or height > 65535:
+                            return False
+                        return True
+                except Exception:
+                    # Header-only validation failed, try partial load
+                    pass
+
+                # For formats that need more data, close the loader and try the old method
+                # but with a limit to prevent excessive memory usage
+            finally:
+                try:
+                    loader.close()
+                except Exception:
+                    pass  # Already closed or failed
 
             # Fallback: read in smaller chunks and validate
             image_data = b""
@@ -523,9 +581,9 @@ class ReplicateAPI:
         if not image_bytes:
             return False
 
+        loader = GdkPixbuf.PixbufLoader()
         try:
             # Attempt to create a pixbuf from the data
-            loader = GdkPixbuf.PixbufLoader()
             loader.write(image_bytes)
             loader.close()
 
@@ -544,6 +602,11 @@ class ReplicateAPI:
 
         except Exception:
             return False
+        finally:
+            try:
+                loader.close()
+            except Exception:
+                pass  # Already closed or failed
 
     def _create_file_handle(self, image_bytes: bytes, name: str) -> io.BytesIO:
         """Wrap image bytes in a file-like buffer compatible with Replicate SDK."""

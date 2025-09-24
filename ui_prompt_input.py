@@ -13,9 +13,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # noqa: E402
 
 from i18n import _  # noqa: E402
+from ui_interfaces import IPromptInput  # noqa: E402
 
 
-class PromptInputUI:
+class PromptInputUI(IPromptInput):
     """Handles prompt text input UI components"""
 
     def __init__(self):
@@ -38,11 +39,16 @@ class PromptInputUI:
         self.prompt_textview = Gtk.TextView()
         self.prompt_textview.set_wrap_mode(Gtk.WrapMode.WORD)
         self.prompt_buffer = self.prompt_textview.get_buffer()
+        self.prompt_buffer.connect("changed", self._on_prompt_changed)
 
         scroll_window.add(self.prompt_textview)
         section_box.pack_start(scroll_window, True, True, 0)
 
         return section_box
+
+    def _on_prompt_changed(self, buffer):
+        """Emit prompt changed signal"""
+        self.emit("prompt_changed")
 
     def get_prompt_text(self):
         """Get the current prompt text"""
