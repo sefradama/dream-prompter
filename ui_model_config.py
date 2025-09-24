@@ -156,8 +156,6 @@ class BytedanceSeedreamStrategy(ModelConfigStrategy):
 
     def create_params_ui(self, model_params_box):
         """Create parameters for Bytedance SeeDream 4"""
-        if self.current_mode != "generate":
-            return
 
         # Size
         size_label = Gtk.Label(_("Size:"))
@@ -706,9 +704,15 @@ class GfpganStrategy(ModelConfigStrategy):
 # Register strategies
 ModelRegistry.register("google/nano-banana", GoogleNanoBananaStrategy)
 ModelRegistry.register("bytedance/seedream-4", BytedanceSeedreamStrategy)
-ModelRegistry.register("qwen/qwen-image-edit", QwenImageEditStrategy)
-ModelRegistry.register("jingyunliang/swinir", SwinirStrategy)
-ModelRegistry.register("tencentarc/gfpgan", GfpganStrategy)
+ModelRegistry.register("qwen/qwen-image-edit-plus", QwenImageEditStrategy)
+ModelRegistry.register(
+    "jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a",
+    SwinirStrategy,
+)
+ModelRegistry.register(
+    "tencentarc/gfpgan:0fbacf7afc6c144e5be9767cff80f25aff23e52b0708f17e20f9879b2f21516c",
+    GfpganStrategy,
+)
 
 
 class ModelConfigUI(IModelConfig):
