@@ -292,14 +292,12 @@ class BytedanceSeedreamStrategy(ModelConfigStrategy):
         if self.size_combo:
             is_custom = self.size_combo.get_active_id() == "custom"
             if self.custom_size_row:
-                self.custom_size_row.set_visible(is_custom)
+                self.custom_size_row.set_visible(False)
             if self.aspect_ratio_row:
                 self.aspect_ratio_row.set_visible(not is_custom)
         if self.sequential_gen_combo:
             if self.max_images_row:
-                self.max_images_row.set_visible(
-                    self.sequential_gen_combo.get_active_id() == "auto"
-                )
+                self.max_images_row.set_visible(False)
 
     def get_parameters(self):
         """Get parameters for Bytedance SeeDream 4"""
@@ -465,9 +463,7 @@ class QwenImageEditStrategy(ModelConfigStrategy):
         """Apply initial conditional visibility"""
         if self.output_format_combo:
             if self.quality_row:
-                self.quality_row.set_visible(
-                    self.output_format_combo.get_active_id() == "jpg"
-                )
+                self.quality_row.set_visible(False)
 
     def get_parameters(self):
         """Get parameters for Qwen Image Edit"""
@@ -605,13 +601,10 @@ class SwinirStrategy(ModelConfigStrategy):
     def _apply_initial_visibility(self):
         """Apply initial conditional visibility"""
         if self.task_type_combo:
-            task = self.task_type_combo.get_active_id()
             if self.noise_row:
-                self.noise_row.set_visible(
-                    task in ["Grayscale Image Denoising", "Color Image Denoising"]
-                )
+                self.noise_row.set_visible(False)
             if self.jpeg_row:
-                self.jpeg_row.set_visible(task == "JPEG Compression Artifact Reduction")
+                self.jpeg_row.set_visible(False)
 
     def get_parameters(self):
         """Get parameters for SwinIR"""
