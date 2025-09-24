@@ -156,6 +156,8 @@ class BytedanceSeedreamStrategy(ModelConfigStrategy):
 
     def create_params_ui(self, model_params_box):
         """Create parameters for Bytedance SeeDream 4"""
+        if self.current_mode != "generate":
+            return
 
         # Size
         size_label = Gtk.Label(_("Size:"))
@@ -183,7 +185,6 @@ class BytedanceSeedreamStrategy(ModelConfigStrategy):
 
         aspect_combo = Gtk.ComboBoxText()
         aspect_combo.set_tooltip_text(_("Select aspect ratio"))
-        aspect_combo.append("match_input_image", _("Match Input Image"))
         aspect_combo.append("1:1", _("1:1"))
         aspect_combo.append("4:3", _("4:3"))
         aspect_combo.append("3:4", _("3:4"))
@@ -192,7 +193,7 @@ class BytedanceSeedreamStrategy(ModelConfigStrategy):
         aspect_combo.append("3:2", _("3:2"))
         aspect_combo.append("2:3", _("2:3"))
         aspect_combo.append("21:9", _("21:9"))
-        aspect_combo.set_active_id("match_input_image")
+        aspect_combo.set_active_id("1:1")
 
         aspect_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         aspect_row.pack_start(aspect_label, False, False, 0)
@@ -363,13 +364,12 @@ class QwenImageEditStrategy(ModelConfigStrategy):
 
             aspect_combo = Gtk.ComboBoxText()
             aspect_combo.set_tooltip_text(_("Select output aspect ratio"))
-            aspect_combo.append("match_input_image", _("Match Input Image"))
             aspect_combo.append("1:1", _("1:1"))
             aspect_combo.append("4:3", _("4:3"))
             aspect_combo.append("3:4", _("3:4"))
             aspect_combo.append("16:9", _("16:9"))
             aspect_combo.append("9:16", _("9:16"))
-            aspect_combo.set_active_id("match_input_image")
+            aspect_combo.set_active_id("1:1")
 
             aspect_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             aspect_row.pack_start(aspect_label, False, False, 0)
@@ -443,7 +443,7 @@ class QwenImageEditStrategy(ModelConfigStrategy):
 
         # Disable safety checker
         safety_check = Gtk.CheckButton(_("Disable Safety Checker"))
-        safety_check.set_active(False)
+        safety_check.set_active(True)
         safety_check.set_tooltip_text(_("Bypass safety checks"))
 
         self.disable_safety_check = safety_check
