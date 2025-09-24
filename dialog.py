@@ -129,7 +129,9 @@ class DreamPrompterDialog(GimpUi.Dialog):
             if self.ui.generate_mode_radio:
                 self.ui.generate_mode_radio.set_sensitive(True)
 
+        current_mode = self.get_current_mode()
+        print(f"Setting initial mode to: {current_mode}")
         try:
-            self.events.on_mode_changed(None)
+            self.events.on_mode_changed(None, current_mode)
         except Exception as e:
             print(f"Error setting initial mode: {e}")
